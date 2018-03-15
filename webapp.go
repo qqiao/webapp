@@ -14,7 +14,10 @@
 
 package webapp
 
-import "html/template"
+import (
+	"html/template"
+	"net/http"
+)
 
 var templateCache = make(map[string]*template.Template)
 
@@ -30,4 +33,13 @@ func GetTemplate(path string, skipCache bool) *template.Template {
 		templateCache[path] = tmpl
 	}
 	return tmpl
+}
+
+// HSTSHandler takes a normal HTTP handler and adds the capability of sending
+// HSTS headers.
+func HSTSHandler(f http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		f(w, r)
+	})
 }
