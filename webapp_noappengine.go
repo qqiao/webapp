@@ -16,5 +16,25 @@
 
 package webapp
 
+import (
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+)
+
 // IsDev whether the application is running in the development mode.
 var IsDev = false
+
+// InitPolyserveProxy initializes a proxy for 'polymer serve'
+func InitPolyserveProxy(mux *http.ServeMux, URL string) error {
+	backend, err := url.Parse(URL)
+	if nil != err {
+		return err
+	}
+
+	for _, path := range PolyserveURLs {
+		mux.Handle(path, httputil.NewSingleHostReverseProxy(backend))
+	}
+
+	return nil
+}

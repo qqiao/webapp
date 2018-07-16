@@ -16,7 +16,54 @@
 
 package webapp
 
-import "google.golang.org/appengine"
+import (
+	"fmt"
+	"io"
+	"net/http"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/urlfetch"
+)
 
 // IsDev whether the application is running in the development mode.
 var IsDev = appengine.IsDevAppServer()
+
+// InitPolyserveProxy initializes a proxy for 'polymer serve'
+func InitPolyserveProxy(mux *http.ServeMux, URL string) error {
+	for _, path := range PolyserveURLs {
+		mux.HandleFunc(path, makeProxy(URL))
+	}
+
+	return nil
+}
+
+func makeProxy(URL string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := appengine.NewContext(r)
+		client := urlfetch.Client(ctx)
+
+		url := fmt.Sprintf("%s%s", URL, r.URL.Path)
+
+		req, err := http.NewRequest(r.Method, url, nil)
+		if nil != err {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		req.Header.Set("user-agent", r.Header.Get("User-Agent"))
+
+		resp, err := client.Do(req)
+		if nil != err {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		for k, vv := range resp.Header {
+			for _, v := range vv {
+				w.Header().Add(k, v)
+			}
+		}
+
+		io.Copy(w, resp.Body)
+	}
+}
