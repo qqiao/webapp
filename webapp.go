@@ -19,6 +19,12 @@ import (
 	"net/http"
 )
 
+// PolyserveURLs are the URLs we should proxy to polymer serve
+var PolyserveURLs = []string{
+	"/node_modules/",
+	"/src/",
+}
+
 var templateCache = make(map[string]*template.Template)
 
 // GetTemplate loads the template from the given path.
@@ -39,7 +45,8 @@ func GetTemplate(path string, skipCache bool) *template.Template {
 // HSTS headers.
 func HSTSHandler(f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		w.Header().Set("Strict-Transport-Security",
+			"max-age=63072000; includeSubDomains; preload")
 		f(w, r)
 	})
 }
