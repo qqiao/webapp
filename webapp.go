@@ -19,6 +19,9 @@ import (
 	"net/http"
 )
 
+// IsDev whether the application is running in the development mode.
+var IsDev = isDev
+
 // PolyserveURLs are the URLs we should proxy to polymer serve
 var PolyserveURLs = []string{
 	"/node_modules/",
@@ -49,4 +52,9 @@ func HSTSHandler(f http.HandlerFunc) http.HandlerFunc {
 			"max-age=63072000; includeSubDomains; preload")
 		f(w, r)
 	})
+}
+
+// InitPolyserveProxy initializes a proxy for 'polymer serve'
+func InitPolyserveProxy(mux *http.ServeMux, URL string) error {
+	return initPolyserveProxy(mux, URL)
 }
