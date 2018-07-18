@@ -25,11 +25,9 @@ import (
 	"google.golang.org/appengine/urlfetch"
 )
 
-// IsDev whether the application is running in the development mode.
-var IsDev = appengine.IsDevAppServer()
+var isDev = appengine.IsDevAppServer()
 
-// InitPolyserveProxy initializes a proxy for 'polymer serve'
-func InitPolyserveProxy(mux *http.ServeMux, URL string) error {
+func initPolyserveProxy(mux *http.ServeMux, URL string) error {
 	for _, path := range PolyserveURLs {
 		mux.HandleFunc(path, makeProxy(URL))
 	}
