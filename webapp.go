@@ -17,19 +17,10 @@ package webapp
 import (
 	"html/template"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
-	"os"
 )
 
 // IsDev whether the application is running in the development mode.
-var IsDev = "dev" == os.Getenv("SERVER_ENV")
-
-// PolyserveURLs are the URLs we should proxy to polymer serve
-var PolyserveURLs = []string{
-	"/node_modules/",
-	"/src/",
-}
+var IsDev = isDev
 
 var templateCache = make(map[string]*template.Template)
 
@@ -55,18 +46,4 @@ func HSTSHandler(f http.HandlerFunc) http.HandlerFunc {
 			"max-age=63072000; includeSubDomains; preload")
 		f(w, r)
 	})
-}
-
-// InitPolyserveProxy initializes a proxy for 'polymer serve'
-func InitPolyserveProxy(mux *http.ServeMux, URL string) error {
-	backend, err := url.Parse(URL)
-	if nil != err {
-		return err
-	}
-
-	for _, path := range PolyserveURLs {
-		mux.Handle(path, httputil.NewSingleHostReverseProxy(backend))
-	}
-
-	return nil
 }
