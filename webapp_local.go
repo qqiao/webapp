@@ -26,6 +26,8 @@ var isDev = true
 
 // PolyserveURLs are the URLs we should proxy to polymer serve
 var PolyserveURLs = []string{
+	"/manifest.json",
+	"/service-worker.js",
 	"/node_modules/",
 	"/src/",
 }
