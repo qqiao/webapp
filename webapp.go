@@ -31,7 +31,7 @@ var templateCache = make(map[string]*template.Template)
 // Please note this method panics if template.ParseFiles failes in any way.
 func GetTemplate(path string, skipCache bool) *template.Template {
 	tmpl, has := templateCache[path]
-	if !has || !skipCache {
+	if !has || skipCache {
 		tmpl = template.Must(template.ParseFiles(path))
 		templateCache[path] = tmpl
 	}
