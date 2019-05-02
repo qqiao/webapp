@@ -28,6 +28,7 @@ var isDev = true
 var PolyserveURLs = []string{
 	"/manifest.json",
 	"/service-worker.js",
+	"/sw.js",
 	"/node_modules/",
 	"/src/",
 }
