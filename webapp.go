@@ -17,12 +17,13 @@ package webapp // import "github.com/qqiao/webapp"
 import (
 	"html/template"
 	"net/http"
+	"sync"
 )
 
 // IsDev whether the application is running in the development mode.
 var IsDev = isDev
 
-var templateCache = make(map[string]*template.Template)
+var templateCache sync.Map
 
 // GetTemplate loads the template from the given path.
 // The funtion caches the loaded template so that the same template would not
@@ -30,12 +31,12 @@ var templateCache = make(map[string]*template.Template)
 //
 // Please note this method panics if template.ParseFiles failes in any way.
 func GetTemplate(path string, skipCache bool) *template.Template {
-	tmpl, has := templateCache[path]
+	tmpl, has := templateCache.Load(path)
 	if !has || skipCache {
 		tmpl = template.Must(template.ParseFiles(path))
-		templateCache[path] = tmpl
+		templateCache.Store(path, tmpl)
 	}
-	return tmpl
+	return tmpl.(*template.Template)
 }
 
 // HSTSHandler takes a normal HTTP handler and adds the capability of sending
