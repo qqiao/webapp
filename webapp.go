@@ -32,9 +32,7 @@ var templateCache sync.Map
 //       will be returned directly.
 //    2. If a less specific value is available, then it will be returned. E.g.
 //       if the input is zh-tw but zh is available then zh will be returned
-//    3. If no locale can be found, the first entry in available will be
-//       returned. If available is empty, an empty string will be returned. It
-//       is down to the caller of the function to handle such situation.
+//    3. Otherwise an empty string is returned.
 func DetermineLocale(input string, available []string) string {
 	for _, locale := range available {
 		if equalOrLessSpecific(locale, input) {
@@ -42,6 +40,23 @@ func DetermineLocale(input string, available []string) string {
 		}
 	}
 	return ""
+}
+
+// DetermineLocaleWithDefault tries to find the best locale for a given input
+//from a list of available locales. It applies the following logic:
+//    1. If the input can be directly found in list of available locales, it
+//       will be returned directly.
+//    2. If a less specific value is available, then it will be returned. E.g.
+//       if the input is zh-tw but zh is available then zh will be returned
+//    3. If no locale can be found, the first entry in available will be
+//       returned. If available is empty, an empty string will be returned. It
+//       is down to the caller of the function to handle such situation.
+func DetermineLocaleWithDefault(input string, available []string) string {
+	candidate := DetermineLocale(input, available)
+	if candidate == "" && len(available) > 0 {
+		return available[0]
+	}
+	return candidate
 }
 
 func equalOrLessSpecific(locale string, input string) bool {

@@ -30,11 +30,21 @@ func TestEqualOrLessSpecific(t *testing.T) {
 }
 
 func TestDetermineLocale(t *testing.T) {
-	if "" != DetermineLocale("zh", []string{}) {
-		t.Errorf("DetermineLocale(\"zh\", []string{}) should return empty")
+	if DetermineLocale("zh", []string{}) != "" {
+		t.Error("DetermineLocale(\"zh\", []string{}) should return \"\"")
 	}
 
-	if "" != DetermineLocale("es", available) {
-		t.Errorf("DetermineLocale(\"es\", available) should return empty")
+	if DetermineLocale("es", available) != "" {
+		t.Error("DetermineLocale(\"es\", available) should return empty")
+	}
+}
+
+func TestDetermineLocaleWithDefault(t *testing.T) {
+	if DetermineLocaleWithDefault("zh", []string{}) != "" {
+		t.Error("DetermineLocaleWithDefault(\"zh\", []string{}) should return \"\"")
+	}
+
+	if DetermineLocaleWithDefault("es", available) != available[0] {
+		t.Error("DetermineLocaleWithDefault(\"es\", available) should return available[0]")
 	}
 }
