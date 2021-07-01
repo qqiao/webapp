@@ -34,12 +34,13 @@ var templateCache sync.Map
 //       if the input is zh-tw but zh is available then zh will be returned
 //    3. Otherwise an empty string is returned.
 func DetermineLocale(input string, available []string) string {
+	candidate := ""
 	for _, locale := range available {
-		if equalOrLessSpecific(locale, input) {
-			return locale
+		if equalOrLessSpecific(locale, input) && len(locale) > len(candidate) {
+			candidate = locale
 		}
 	}
-	return ""
+	return candidate
 }
 
 // DetermineLocaleWithDefault tries to find the best locale for a given input

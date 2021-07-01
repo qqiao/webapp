@@ -41,6 +41,10 @@ func TestDetermineLocale(t *testing.T) {
 	if DetermineLocale("es", available) != "" {
 		t.Error("DetermineLocale(\"es\", available) should return empty")
 	}
+
+	if DetermineLocale("zh-TW", available) != "zh-TW" {
+		t.Error("DetermineLocale(\"zh-TW\", available) should return \"zh-TW\"")
+	}
 }
 
 func TestDetermineLocaleWithDefault(t *testing.T) {
