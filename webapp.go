@@ -60,7 +60,11 @@ func DetermineLocaleWithDefault(input string, available []string) string {
 }
 
 func equalOrLessSpecific(locale string, input string) bool {
-	return strings.HasPrefix(input, locale)
+	prefix := locale
+	if len(input) > len(locale) {
+		prefix = prefix + "-"
+	}
+	return strings.HasPrefix(input, prefix)
 }
 
 // GetTemplate loads the template from the given path.

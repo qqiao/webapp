@@ -13,19 +13,23 @@ var available = []string{
 
 func TestEqualOrLessSpecific(t *testing.T) {
 	if !equalOrLessSpecific("zh", "zh") {
-		t.Errorf("equalOrLessSpecific(\"zh\", \"zh\") should be true")
+		t.Error("equalOrLessSpecific(\"zh\", \"zh\") should be true")
 	}
 
 	if !equalOrLessSpecific("zh", "zh-hk") {
-		t.Errorf("equalOrLessSpecific(\"zh\", \"zh-hk\") should be true")
+		t.Error("equalOrLessSpecific(\"zh\", \"zh-hk\") should be true")
+	}
+
+	if equalOrLessSpecific("zh", "zh1123") {
+		t.Error("equalOrLessSpecific(\"zh\", \"zh1123\") should be false")
 	}
 
 	if equalOrLessSpecific("zh-tw", "zh-hk") {
-		t.Errorf("equalOrLessSpecific(\"zh-tw\", \"zh-hk\") should be false")
+		t.Error("equalOrLessSpecific(\"zh-tw\", \"zh-hk\") should be false")
 	}
 
 	if equalOrLessSpecific("en", "zh-hk") {
-		t.Errorf("equalOrLessSpecific(\"en\", \"zh-hk\") should be false")
+		t.Error("equalOrLessSpecific(\"en\", \"zh-hk\") should be false")
 	}
 }
 
