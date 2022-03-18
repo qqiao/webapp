@@ -84,7 +84,13 @@ func GetTemplate(path string, skipCache bool) *template.Template {
 
 // HSTSHandler takes a normal HTTP handler and adds the capability of sending
 // HSTS headers.
+// Please note that if IsDev = true, this function will NOT set the HSTS
+// headers and will simply return the handler function as-is.
 func HSTSHandler(f http.HandlerFunc) http.HandlerFunc {
+	if IsDev {
+		return f
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Strict-Transport-Security",
 			"max-age=63072000; includeSubDomains; preload")
