@@ -108,23 +108,23 @@ func TestMain(m *testing.M) {
 }
 
 func testMatch(t *testing.T, input string) {
-	tm := time.Unix(253402271999, 0)
-	tok, errCh := j.CreateCustom(input, &tm)
+	claims := jw.NewClaims().WithDat(input).WithExpiry(time.Unix(253402271999, 0))
+	tok, errCh := j.SignCustom(claims)
 
 	select {
 	case err := <-errCh:
 		t.Errorf("Failed to create token: %v", err)
 	case token := <-tok:
-		decodedCh, errCh := j.ValidateCustom(token)
+		decodedCh, errCh := j.ParseCustom(token)
 
 		select {
 		case err := <-errCh:
 			t.Errorf("Failed to validate token: %v", err)
 
 		case decoded := <-decodedCh:
-			if input != decoded {
+			if input != decoded.Dat {
 				t.Errorf("Did not get back input.\nInput: %q\nGot: %q",
-					input, decoded)
+					input, decoded.Dat)
 			}
 		}
 	}
@@ -137,7 +137,39 @@ func testMatch(t *testing.T, input string) {
 // 	f.Fuzz(testMatch)
 // }
 
-func TestSigning(t *testing.T) {
+func TestParseCustom(t *testing.T) {
+	expected := "1"
+	gotCh, errCh := j.ParseCustom(token)
+
+	select {
+	case err := <-errCh:
+		t.Errorf("Error while validating token: %v", err)
+
+	case got := <-gotCh:
+		if got.Dat != expected {
+			t.Errorf("Expected: %s. Got: %s", expected, got.Dat)
+		}
+	}
+}
+
+func TestMultipleParseCustoms(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		expected := "1"
+		gotCh, errCh := j.ParseCustom(token)
+
+		select {
+		case err := <-errCh:
+			t.Errorf("Error while validating token: %v", err)
+
+		case got := <-gotCh:
+			if got.Dat != expected {
+				t.Errorf("Expected: %s. Got: %s", expected, got.Dat)
+			}
+		}
+	}
+}
+
+func TestSignCustom(t *testing.T) {
 	testMatch(t, "1")
 	testMatch(t, "中文")
 }
@@ -153,23 +185,6 @@ func TestValidation(t *testing.T) {
 	case got := <-gotCh:
 		if got != expected {
 			t.Errorf("Expected: %s. Got: %s", expected, got)
-		}
-	}
-}
-
-func TestMultipleValidations(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		expected := "1"
-		gotCh, errCh := j.ValidateCustom(token)
-
-		select {
-		case err := <-errCh:
-			t.Errorf("Error while validating token: %v", err)
-
-		case got := <-gotCh:
-			if got != expected {
-				t.Errorf("Expected: %s. Got: %s", expected, got)
-			}
 		}
 	}
 }

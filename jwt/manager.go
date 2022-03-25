@@ -24,77 +24,71 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// Claims represents a custom claim where the dat section is used for custom
-// data.
-//
-// TODO make this generic
-type Claims struct {
-	Dat interface{} `json:"dat,omitempty"`
-	*jwt.StandardClaims
-}
-
 // Manager is responsible for creating and validating JWT tokens.
 //
-// Given that validating JWT comes with a cost, internally, the manager
-// caches already validated tokens, so if the same token is validated again
-// multiple times, cached results will be returned.
+// Given that validating JWT comes with a hefty cost, internally, the manager
+// caches already validated tokens, so if the same token is validated
+// repeatedly, cached results will be returned.
 type Manager struct {
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey
 
+	signingMethod jwt.SigningMethod
+
 	validTokens sync.Map
 }
 
-// NewManager creates a new JWT client that signs and validates JWT tokens.
+// NewManager creates a new JWT client that signs and validates JWT tokens
+// using the PS512 algorithm.
 //
-// TODO make this generic
+// Deprecated: Instead of using this method, users of the library should use
+// NewPS512Manager instead. The underlying source code has already been
+// converted to use the new function, and all users should also do so.
+//
+// This method will be removed in the 2.0 version stream when we implement
+// generics.
 func NewManager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
+	return NewPS512Manager(publicKey, privateKey)
+}
+
+// NewPS512Manager creates a new JWT client that signs and validates JWT tokens
+// using the PS512 algorithm.
+func NewPS512Manager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
 	return Manager{
-		privateKey: privateKey,
 		publicKey:  publicKey,
+		privateKey: privateKey,
+
+		signingMethod: jwt.GetSigningMethod("PS512"),
 	}
 }
 
 // CreateCustom creates a JWT token with custom dat claim.
 //
-// TODO: Make this function generic
+// Deprecated: Instead of using this method, users of the library should create
+// the Claims object separately and use the SignCustom function instead. The
+// underlying source code has already been converted to use the new function,
+// and all users should also do so.
+//
+// This method will be removed in the 2.0 version stream when we implement
+// generics.
 func (m Manager) CreateCustom(dat interface{},
 	expiresAt *time.Time) (<-chan string, <-chan error) {
-	tokenCh := make(chan string)
-	errCh := make(chan error)
+	_expiresAt := time.Now().Add(365 * 24 * time.Hour)
+	if expiresAt != nil {
+		_expiresAt = time.Unix(expiresAt.Unix(), expiresAt.UnixMicro())
+	}
 
-	go func() {
-		defer close(errCh)
-		defer close(tokenCh)
+	claims := NewClaims().WithDat(dat).WithExpiry(_expiresAt)
 
-		_expiresAt := time.Now().Add(365 * 24 * time.Hour)
-		if expiresAt == nil {
-			expiresAt = &_expiresAt
-		}
-		claim := Claims{
-			dat,
-			&jwt.StandardClaims{
-				ExpiresAt: expiresAt.Unix(),
-			},
-		}
-
-		if token, err := jwt.NewWithClaims(jwt.SigningMethodPS512,
-			claim).SignedString(m.privateKey); err != nil {
-			errCh <- err
-			return
-		} else {
-			tokenCh <- token
-		}
-	}()
-
-	return tokenCh, errCh
+	return m.SignCustom(claims)
 }
 
-// ValidateCustom validates a JWT token with a custom dat claim.
+// ParseCustom parses a JWT token with the claims and returns the claims of
+// the token.
 //
-// TODO make this generic
-func (m Manager) ValidateCustom(token string) (<-chan interface{}, <-chan error) {
-	resultCh := make(chan interface{})
+// TODO: make this generic in 2.0
+func (m Manager) ParseCustom(token string) (<-chan *Claims, <-chan error) {
+	resultCh := make(chan *Claims)
 	errCh := make(chan error)
 
 	go func() {
@@ -108,7 +102,7 @@ func (m Manager) ValidateCustom(token string) (<-chan interface{}, <-chan error)
 		if !has {
 			t, err := jwt.ParseWithClaims(token, &Claims{},
 				func(jwtToken *jwt.Token) (interface{}, error) {
-					if _, ok := jwtToken.Method.(*jwt.SigningMethodRSAPSS); !ok {
+					if jwtToken.Method.Alg() != m.signingMethod.Alg() {
 						return nil, fmt.Errorf("Unexpected method: %s",
 							jwtToken.Header["alg"])
 					}
@@ -129,7 +123,7 @@ func (m Manager) ValidateCustom(token string) (<-chan interface{}, <-chan error)
 			// After parsing the token, we save it to the valid tokens cache
 			m.validTokens.Store(token, claims)
 
-			resultCh <- claims.Dat
+			resultCh <- claims
 		} else {
 			cl := claims.(*Claims)
 
@@ -138,7 +132,59 @@ func (m Manager) ValidateCustom(token string) (<-chan interface{}, <-chan error)
 				return
 			}
 
-			resultCh <- cl.Dat
+			resultCh <- cl
+		}
+	}()
+
+	return resultCh, errCh
+}
+
+// SignCustom signs the JWT token with the given claims.
+//
+// TODO: make this generic in 2.0
+func (m Manager) SignCustom(claims *Claims) (<-chan string, <-chan error) {
+	tokenCh := make(chan string)
+	errCh := make(chan error)
+
+	go func() {
+		defer close(errCh)
+		defer close(tokenCh)
+
+		if token, err := jwt.NewWithClaims(m.signingMethod, claims).
+			SignedString(m.privateKey); err != nil {
+			errCh <- err
+			return
+		} else {
+			tokenCh <- token
+		}
+	}()
+
+	return tokenCh, errCh
+}
+
+// ValidateCustom validates a JWT token with a custom dat claim.
+//
+// Deprecated: Instead of using this method, users of the library should use
+// ParseCustom function instead, and subsequently work directly with the Claims
+// object that the function returns. The underlying source code has already
+// been converted to use the new function, and all users should also do so.
+//
+// This method will be removed in the 2.0 version stream when we implement
+// generics.
+func (m Manager) ValidateCustom(token string) (<-chan interface{}, <-chan error) {
+	resultCh := make(chan interface{})
+	errCh := make(chan error)
+
+	go func() {
+		defer close(resultCh)
+		defer close(errCh)
+
+		claimsCh, eCh := m.ParseCustom(token)
+		select {
+		case err := <-eCh:
+			errCh <- err
+		case claims := <-claimsCh:
+			resultCh <- claims.Dat
 		}
 	}()
 
