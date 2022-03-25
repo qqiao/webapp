@@ -12,37 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build local
 // +build local
 
 package webapp
 
-import (
-	"net/http"
-	"net/http/httputil"
-	"net/url"
-)
-
 var isDev = true
-
-// PolyserveURLs are the URLs we should proxy to polymer serve
-var PolyserveURLs = []string{
-	"/manifest.json",
-	"/service-worker.js",
-	"/sw.js",
-	"/node_modules/",
-	"/src/",
-}
-
-// InitPolyserveProxy initializes a proxy for 'polymer serve'
-func InitPolyserveProxy(mux *http.ServeMux, URL string) error {
-	backend, err := url.Parse(URL)
-	if nil != err {
-		return err
-	}
-
-	for _, path := range PolyserveURLs {
-		mux.Handle(path, httputil.NewSingleHostReverseProxy(backend))
-	}
-
-	return nil
-}
