@@ -1,0 +1,14 @@
+name: test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: qqiao/dev-env:latest
+      options: --user root
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: go test -v ./...
