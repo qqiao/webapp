@@ -13,4 +13,7 @@
 // limitations under the License.
 
 // Package JWT contains functions required for JWT signing and validation.
+//
+// Currently only PS512 algorithm is supported, more methods will be added
+// in future releases.
 package jwt
