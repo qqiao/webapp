@@ -152,6 +152,23 @@ func TestParseCustom(t *testing.T) {
 	}
 }
 
+func TestMultipleParseCustoms(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		expected := "1"
+		gotCh, errCh := j.ParseCustom(token)
+
+		select {
+		case err := <-errCh:
+			t.Errorf("Error while validating token: %v", err)
+
+		case got := <-gotCh:
+			if got.Dat != expected {
+				t.Errorf("Expected: %s. Got: %s", expected, got.Dat)
+			}
+		}
+	}
+}
+
 func TestSignCustom(t *testing.T) {
 	testMatch(t, "1")
 	testMatch(t, "中文")
@@ -168,23 +185,6 @@ func TestValidation(t *testing.T) {
 	case got := <-gotCh:
 		if got != expected {
 			t.Errorf("Expected: %s. Got: %s", expected, got)
-		}
-	}
-}
-
-func TestMultipleValidations(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		expected := "1"
-		gotCh, errCh := j.ValidateCustom(token)
-
-		select {
-		case err := <-errCh:
-			t.Errorf("Error while validating token: %v", err)
-
-		case got := <-gotCh:
-			if got != expected {
-				t.Errorf("Expected: %s. Got: %s", expected, got)
-			}
 		}
 	}
 }
