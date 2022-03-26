@@ -25,7 +25,7 @@ import (
 
 const token = `eyJhbGciOiJQUzUxMiIsInR5cCI6IkpXVCJ9.eyJkYXQiOiIxIiwiZXhwIjoyNTM0MDIyNzE5OTl9.acGc_2bhg9ELH0YCumW8BBrsI7nNXUw2CJWMOJVRXbYCGY3BvKBWkNKFuy-q_zRZ8RDlN1qI0oKokakHxk_94Gg8x7ttJbVg5-dysL3hhS0E5eZGpX40ujSSqW5s1bctBjOjAFU9weR7DKSqznglMgUL6_K11I2F8ZG3aTTtc8wFMN3D1wplqiw3RhbLbsyFJx8p2ZEokIzofNP7SIUcmKyXuVx9_me9BRdfTH8mwJ4miSfyW8Aq9vASGWYb8TDuTlPi4yGTrzzjvzdG8OLyfkoK4oaK_6uW2ZzAwkXFjMLiy1RuRkj36aH5IOGSoBdS8ns32wfeOu8mTOzn_dOa2ztIQD_iwX5z-3kcx_v1emAzvsPro7p6yPjE75Z5qU0rw7EgHYvCigg96hLs1ghNRHFN4Xx5ahMl4dqDJPA0L6EQsj80mqfDgAJ7285jYpZs28X7Ij19fqRoVw-fvsj_zcEI4WJnhapY9pbiOwbh8EUxtltgW3IiPzKLohgAF8JZ6rnnJJqOWi9TGbknfeLh6cXkohWMTlk8q6uu9g25SLdravvCUReFvIkJYIukO2y8wDPTlB9gOR9uQcdTKn-Wr6G43GS05hhappKjotAqxuvlaMEdaVHh_Qr1fLcy7erMd69irR7dbMsfZ5BriEyWE9OTAr8Ano7qoXMZlqt-37Q`
 
-var j jw.Manager
+var ps512 jw.Manager
 
 func setUp() {
 	privateKey, _ := jwt.ParseRSAPrivateKeyFromPEM([]byte(`
@@ -99,7 +99,7 @@ rxYt4E6zaoD1Ix9YXh2bKocCAwEAAQ==
 -----END PUBLIC KEY-----
 `))
 
-	j = jw.NewManager(publicKey, privateKey)
+	ps512 = jw.NewPS512Manager(publicKey, privateKey)
 }
 
 func TestMain(m *testing.M) {
@@ -107,15 +107,15 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testMatch(t *testing.T, input string) {
+func testManager(t *testing.T, manager jw.Manager, input string) {
 	claims := jw.NewClaims().WithDat(input).WithExpiry(time.Unix(253402271999, 0))
-	tok, errCh := j.SignCustom(claims)
+	tok, errCh := manager.SignCustom(claims)
 
 	select {
 	case err := <-errCh:
 		t.Errorf("Failed to create token: %v", err)
 	case token := <-tok:
-		decodedCh, errCh := j.ParseCustom(token)
+		decodedCh, errCh := manager.ParseCustom(token)
 
 		select {
 		case err := <-errCh:
@@ -128,7 +128,12 @@ func testMatch(t *testing.T, input string) {
 			}
 		}
 	}
+}
 
+func testWithManager(manager jw.Manager) func(*testing.T, string) {
+	return func(t *testing.T, input string) {
+		testManager(t, manager, input)
+	}
 }
 
 // func FuzzSigning(f *testing.F) {
@@ -139,7 +144,7 @@ func testMatch(t *testing.T, input string) {
 
 func TestParseCustom(t *testing.T) {
 	expected := "1"
-	gotCh, errCh := j.ParseCustom(token)
+	gotCh, errCh := ps512.ParseCustom(token)
 
 	select {
 	case err := <-errCh:
@@ -155,7 +160,7 @@ func TestParseCustom(t *testing.T) {
 func TestMultipleParseCustoms(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		expected := "1"
-		gotCh, errCh := j.ParseCustom(token)
+		gotCh, errCh := ps512.ParseCustom(token)
 
 		select {
 		case err := <-errCh:
@@ -170,13 +175,13 @@ func TestMultipleParseCustoms(t *testing.T) {
 }
 
 func TestSignCustom(t *testing.T) {
-	testMatch(t, "1")
-	testMatch(t, "中文")
+	testWithManager(ps512)(t, "1")
+	testWithManager(ps512)(t, "中文")
 }
 
 func TestValidation(t *testing.T) {
 	expected := "1"
-	gotCh, errCh := j.ValidateCustom(token)
+	gotCh, errCh := ps512.ValidateCustom(token)
 
 	select {
 	case err := <-errCh:

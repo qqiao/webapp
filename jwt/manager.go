@@ -30,8 +30,8 @@ import (
 // caches already validated tokens, so if the same token is validated
 // repeatedly, cached results will be returned.
 type Manager struct {
-	privateKey *rsa.PrivateKey
-	publicKey  *rsa.PublicKey
+	signingKey interface{}
+	parseKey   interface{}
 
 	signingMethod jwt.SigningMethod
 
@@ -55,8 +55,8 @@ func NewManager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
 // using the PS512 algorithm.
 func NewPS512Manager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
 	return Manager{
-		publicKey:  publicKey,
-		privateKey: privateKey,
+		parseKey:   publicKey,
+		signingKey: privateKey,
 
 		signingMethod: jwt.GetSigningMethod("PS512"),
 	}
@@ -107,7 +107,7 @@ func (m Manager) ParseCustom(token string) (<-chan *Claims, <-chan error) {
 							jwtToken.Header["alg"])
 					}
 
-					return m.publicKey, nil
+					return m.parseKey, nil
 				})
 			if err != nil {
 				errCh <- err
@@ -151,7 +151,7 @@ func (m Manager) SignCustom(claims *Claims) (<-chan string, <-chan error) {
 		defer close(tokenCh)
 
 		if token, err := jwt.NewWithClaims(m.signingMethod, claims).
-			SignedString(m.privateKey); err != nil {
+			SignedString(m.signingKey); err != nil {
 			errCh <- err
 			return
 		} else {
