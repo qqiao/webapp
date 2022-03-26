@@ -62,6 +62,11 @@ func NewPS512Manager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manag
 	}
 }
 
+// Alg returns the signing algorithm supported by the current manager instance.
+func (m Manager) Alg() string {
+	return m.signingMethod.Alg()
+}
+
 // CreateCustom creates a JWT token with custom dat claim.
 //
 // Deprecated: Instead of using this method, users of the library should create
@@ -102,8 +107,8 @@ func (m Manager) ParseCustom(token string) (<-chan *Claims, <-chan error) {
 		if !has {
 			t, err := jwt.ParseWithClaims(token, &Claims{},
 				func(jwtToken *jwt.Token) (interface{}, error) {
-					if jwtToken.Method.Alg() != m.signingMethod.Alg() {
-						return nil, fmt.Errorf("Unexpected method: %s",
+					if jwtToken.Method.Alg() != m.Alg() {
+						return nil, fmt.Errorf("Unexpected algorithm: %s",
 							jwtToken.Header["alg"])
 					}
 
