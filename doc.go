@@ -1,4 +1,4 @@
-// Copyright 2022 Qian Qiao
+// Copyright 2017 Qian Qiao
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,10 +14,8 @@
 
 /*
 
-Package JWT contains functions required for JWT signing and validation.
-
-Currently only PS512 algorithm is supported, more methods will be added in
-future releases.
+Package webapp provides a set of convenient functions for Go based web
+applications.
 
 */
-package jwt
+package webapp

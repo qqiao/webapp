@@ -15,6 +15,7 @@
 package jwt_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -23,9 +24,14 @@ import (
 	jw "github.com/qqiao/webapp/jwt"
 )
 
-const token = `eyJhbGciOiJQUzUxMiIsInR5cCI6IkpXVCJ9.eyJkYXQiOiIxIiwiZXhwIjoyNTM0MDIyNzE5OTl9.acGc_2bhg9ELH0YCumW8BBrsI7nNXUw2CJWMOJVRXbYCGY3BvKBWkNKFuy-q_zRZ8RDlN1qI0oKokakHxk_94Gg8x7ttJbVg5-dysL3hhS0E5eZGpX40ujSSqW5s1bctBjOjAFU9weR7DKSqznglMgUL6_K11I2F8ZG3aTTtc8wFMN3D1wplqiw3RhbLbsyFJx8p2ZEokIzofNP7SIUcmKyXuVx9_me9BRdfTH8mwJ4miSfyW8Aq9vASGWYb8TDuTlPi4yGTrzzjvzdG8OLyfkoK4oaK_6uW2ZzAwkXFjMLiy1RuRkj36aH5IOGSoBdS8ns32wfeOu8mTOzn_dOa2ztIQD_iwX5z-3kcx_v1emAzvsPro7p6yPjE75Z5qU0rw7EgHYvCigg96hLs1ghNRHFN4Xx5ahMl4dqDJPA0L6EQsj80mqfDgAJ7285jYpZs28X7Ij19fqRoVw-fvsj_zcEI4WJnhapY9pbiOwbh8EUxtltgW3IiPzKLohgAF8JZ6rnnJJqOWi9TGbknfeLh6cXkohWMTlk8q6uu9g25SLdravvCUReFvIkJYIukO2y8wDPTlB9gOR9uQcdTKn-Wr6G43GS05hhappKjotAqxuvlaMEdaVHh_Qr1fLcy7erMd69irR7dbMsfZ5BriEyWE9OTAr8Ano7qoXMZlqt-37Q`
+type testCase struct {
+	manager  jw.Manager
+	token    string
+	expected string
+	dat      []string
+}
 
-var j jw.Manager
+var testCases []testCase
 
 func setUp() {
 	privateKey, _ := jwt.ParseRSAPrivateKeyFromPEM([]byte(`
@@ -99,7 +105,16 @@ rxYt4E6zaoD1Ix9YXh2bKocCAwEAAQ==
 -----END PUBLIC KEY-----
 `))
 
-	j = jw.NewManager(publicKey, privateKey)
+	ps512 := jw.NewPS512Manager(publicKey, privateKey)
+
+	testCases = []testCase{
+		{
+			manager:  ps512,
+			expected: "1",
+			token:    `eyJhbGciOiJQUzUxMiIsInR5cCI6IkpXVCJ9.eyJkYXQiOiIxIiwiZXhwIjoyNTM0MDIyNzE5OTl9.acGc_2bhg9ELH0YCumW8BBrsI7nNXUw2CJWMOJVRXbYCGY3BvKBWkNKFuy-q_zRZ8RDlN1qI0oKokakHxk_94Gg8x7ttJbVg5-dysL3hhS0E5eZGpX40ujSSqW5s1bctBjOjAFU9weR7DKSqznglMgUL6_K11I2F8ZG3aTTtc8wFMN3D1wplqiw3RhbLbsyFJx8p2ZEokIzofNP7SIUcmKyXuVx9_me9BRdfTH8mwJ4miSfyW8Aq9vASGWYb8TDuTlPi4yGTrzzjvzdG8OLyfkoK4oaK_6uW2ZzAwkXFjMLiy1RuRkj36aH5IOGSoBdS8ns32wfeOu8mTOzn_dOa2ztIQD_iwX5z-3kcx_v1emAzvsPro7p6yPjE75Z5qU0rw7EgHYvCigg96hLs1ghNRHFN4Xx5ahMl4dqDJPA0L6EQsj80mqfDgAJ7285jYpZs28X7Ij19fqRoVw-fvsj_zcEI4WJnhapY9pbiOwbh8EUxtltgW3IiPzKLohgAF8JZ6rnnJJqOWi9TGbknfeLh6cXkohWMTlk8q6uu9g25SLdravvCUReFvIkJYIukO2y8wDPTlB9gOR9uQcdTKn-Wr6G43GS05hhappKjotAqxuvlaMEdaVHh_Qr1fLcy7erMd69irR7dbMsfZ5BriEyWE9OTAr8Ano7qoXMZlqt-37Q`,
+			dat:      []string{"1", "中文"},
+		},
+	}
 }
 
 func TestMain(m *testing.M) {
@@ -107,28 +122,27 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testMatch(t *testing.T, input string) {
-	claims := jw.NewClaims().WithDat(input).WithExpiry(time.Unix(253402271999, 0))
-	tok, errCh := j.SignCustom(claims)
+func testSigning(t *testing.T, manager jw.Manager, dat string) {
+	claims := jw.NewClaims().WithDat(dat).WithExpiry(time.Unix(253402271999, 0))
+	tok, errCh := manager.SignCustom(claims)
 
 	select {
 	case err := <-errCh:
 		t.Errorf("Failed to create token: %v", err)
 	case token := <-tok:
-		decodedCh, errCh := j.ParseCustom(token)
+		decodedCh, errCh := manager.ParseCustom(token)
 
 		select {
 		case err := <-errCh:
 			t.Errorf("Failed to validate token: %v", err)
 
 		case decoded := <-decodedCh:
-			if input != decoded.Dat {
+			if dat != decoded.Dat {
 				t.Errorf("Did not get back input.\nInput: %q\nGot: %q",
-					input, decoded.Dat)
+					dat, decoded.Dat)
 			}
 		}
 	}
-
 }
 
 // func FuzzSigning(f *testing.F) {
@@ -137,9 +151,8 @@ func testMatch(t *testing.T, input string) {
 // 	f.Fuzz(testMatch)
 // }
 
-func TestParseCustom(t *testing.T) {
-	expected := "1"
-	gotCh, errCh := j.ParseCustom(token)
+func testParseCustom(t *testing.T, manager jw.Manager, token string, expected string) {
+	gotCh, errCh := manager.ParseCustom(token)
 
 	select {
 	case err := <-errCh:
@@ -152,10 +165,9 @@ func TestParseCustom(t *testing.T) {
 	}
 }
 
-func TestMultipleParseCustoms(t *testing.T) {
+func testRepeatableParseCustoms(t *testing.T, manager jw.Manager, token string, expected string) {
 	for i := 0; i < 10; i++ {
-		expected := "1"
-		gotCh, errCh := j.ParseCustom(token)
+		gotCh, errCh := manager.ParseCustom(token)
 
 		select {
 		case err := <-errCh:
@@ -169,22 +181,24 @@ func TestMultipleParseCustoms(t *testing.T) {
 	}
 }
 
-func TestSignCustom(t *testing.T) {
-	testMatch(t, "1")
-	testMatch(t, "中文")
-}
+func TestSuite(t *testing.T) {
+	for _, tc := range testCases {
+		alg := tc.manager.Alg()
+		t.Run(fmt.Sprintf("%s should parse correctly", alg),
+			func(t *testing.T) {
+				testParseCustom(t, tc.manager, tc.token, tc.expected)
+			})
 
-func TestValidation(t *testing.T) {
-	expected := "1"
-	gotCh, errCh := j.ValidateCustom(token)
+		t.Run(fmt.Sprintf("%s should perform repeatable parses", alg),
+			func(t *testing.T) {
+				testRepeatableParseCustoms(t, tc.manager, tc.token, tc.expected)
+			})
 
-	select {
-	case err := <-errCh:
-		t.Errorf("Error while validating token: %v", err)
-
-	case got := <-gotCh:
-		if got != expected {
-			t.Errorf("Expected: %s. Got: %s", expected, got)
+		for _, dat := range tc.dat {
+			t.Run(fmt.Sprintf("%s should sign correctly", alg),
+				func(t *testing.T) {
+					testSigning(t, tc.manager, dat)
+				})
 		}
 	}
 }
