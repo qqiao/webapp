@@ -22,6 +22,11 @@ import (
 )
 
 // IsDev whether the application is running in the development mode.
+//
+// Deprecated: since local specific code has all been eliminated, this flag
+// is no longer useful.
+//
+// This flag will be removed in the 1.4 stream
 var IsDev = isDev
 
 var templateCache sync.Map
