@@ -21,14 +21,6 @@ import (
 	"sync"
 )
 
-// IsDev whether the application is running in the development mode.
-//
-// Deprecated: since local specific code has all been eliminated, this flag
-// is no longer useful.
-//
-// This flag will be removed in the 1.4 stream
-var IsDev = isDev
-
 var templateCache sync.Map
 
 // DetermineLocale tries to find the best locale for a given input from a list
@@ -89,16 +81,10 @@ func GetTemplate(path string, skipCache bool) *template.Template {
 
 // HSTSHandler takes a normal HTTP handler and adds the capability of sending
 // HSTS headers.
-// Please note that if IsDev = true, this function will NOT set the HSTS
-// headers and will simply return the handler function as-is.
 func HSTSHandler(f http.HandlerFunc) http.HandlerFunc {
-	if IsDev {
-		return f
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Strict-Transport-Security",
 			"max-age=63072000; includeSubDomains; preload")
 		f(w, r)
-	})
+	}
 }
