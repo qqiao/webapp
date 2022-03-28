@@ -47,8 +47,6 @@ func (c *Claims) WithDat(dat interface{}) *Claims {
 }
 
 // WithExpiry updates the expiry of the JWT token to the time specified.
-//
-// TODO: make this generic in 2.0
 func (c *Claims) WithExpiry(expiry time.Time) *Claims {
 	c.StandardClaims.ExpiresAt = expiry.Unix()
 	return c

@@ -15,17 +15,30 @@
 package jwt_test
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
-	jw "github.com/qqiao/webapp/jwt"
+	j "github.com/golang-jwt/jwt/v4"
+	"github.com/qqiao/webapp/jwt"
 )
 
+func ExampleNewPS512Manager() {
+	// In real program usage, the private and public key pair has to be real
+	// and should be be dummy ones like this
+	privateKey := &rsa.PrivateKey{}
+	publicKey := &rsa.PublicKey{}
+
+	manager := jwt.NewPS512Manager(publicKey, privateKey)
+	fmt.Println(manager.Alg())
+
+	// Output: PS512
+}
+
 type testCase struct {
-	manager  jw.Manager
+	manager  jwt.Manager
 	token    string
 	expected string
 	dat      []string
@@ -34,7 +47,7 @@ type testCase struct {
 var testCases []testCase
 
 func setUp() {
-	privateKey, _ := jwt.ParseRSAPrivateKeyFromPEM([]byte(`
+	privateKey, _ := j.ParseRSAPrivateKeyFromPEM([]byte(`
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKAIBAAKCAgEAwe3SUOlXW3TRxOs+CfJb9xABVCSW9LdjRKAvJvcAvbR5nVVX
 fv078fVL+9a/mr+V2FzPXi/QRW7QeFEBT9gOpljYxRWH8T+6hA2UETrDaYGsjEcj
@@ -88,7 +101,7 @@ wcwRjMU2zNSZq8CKTTyubm71fKrxq+Kp2UfYuf0e/W8oI8uFV5BdQWtavT8=
 -----END RSA PRIVATE KEY-----
 `))
 
-	publicKey, _ := jwt.ParseRSAPublicKeyFromPEM([]byte(`
+	publicKey, _ := j.ParseRSAPublicKeyFromPEM([]byte(`
 -----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwe3SUOlXW3TRxOs+CfJb
 9xABVCSW9LdjRKAvJvcAvbR5nVVXfv078fVL+9a/mr+V2FzPXi/QRW7QeFEBT9gO
@@ -105,7 +118,7 @@ rxYt4E6zaoD1Ix9YXh2bKocCAwEAAQ==
 -----END PUBLIC KEY-----
 `))
 
-	ps512 := jw.NewPS512Manager(publicKey, privateKey)
+	ps512 := jwt.NewPS512Manager(publicKey, privateKey)
 
 	testCases = []testCase{
 		{
@@ -122,8 +135,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testSigning(t *testing.T, manager jw.Manager, dat string) {
-	claims := jw.NewClaims().WithDat(dat).WithExpiry(time.Unix(253402271999, 0))
+func testSigning(t *testing.T, manager jwt.Manager, dat string) {
+	claims := jwt.NewClaims().WithDat(dat).WithExpiry(time.Unix(253402271999, 0))
 	tok, errCh := manager.SignCustom(claims)
 
 	select {
@@ -151,7 +164,7 @@ func testSigning(t *testing.T, manager jw.Manager, dat string) {
 // 	f.Fuzz(testMatch)
 // }
 
-func testParseCustom(t *testing.T, manager jw.Manager, token string, expected string) {
+func testParseCustom(t *testing.T, manager jwt.Manager, token string, expected string) {
 	gotCh, errCh := manager.ParseCustom(token)
 
 	select {
@@ -165,7 +178,7 @@ func testParseCustom(t *testing.T, manager jw.Manager, token string, expected st
 	}
 }
 
-func testRepeatableParseCustoms(t *testing.T, manager jw.Manager, token string, expected string) {
+func testRepeatableParseCustoms(t *testing.T, manager jwt.Manager, token string, expected string) {
 	for i := 0; i < 10; i++ {
 		gotCh, errCh := manager.ParseCustom(token)
 
