@@ -23,7 +23,10 @@ on:
 jobs:
   analyze:
     name: Analyze
-    runs-on: qqiao/dev-env
+    runs-on: ubuntu-latest
+    container:
+      image: qqiao/dev-env:latest
+      options: --user root
     permissions:
       actions: read
       contents: read
