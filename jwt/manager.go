@@ -80,7 +80,7 @@ func (m Manager) CreateCustom(dat interface{},
 	expiresAt *time.Time) (<-chan string, <-chan error) {
 	_expiresAt := time.Now().Add(365 * 24 * time.Hour)
 	if expiresAt != nil {
-		_expiresAt = time.Unix(expiresAt.Unix(), expiresAt.UnixMicro())
+		_expiresAt = time.Unix(expiresAt.Unix(), 0)
 	}
 
 	claims := NewClaims().WithDat(dat).WithExpiry(_expiresAt)
