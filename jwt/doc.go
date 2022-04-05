@@ -14,9 +14,9 @@
 
 /*
 
-Package JWT contains functions required for JWT signing and validation.
+Package jwt contains functions required for JWT signing and validation.
 
-Currently only PS512 algorithm is supported, more methods will be added in
+Currently, only PS512 algorithm is supported, more methods will be added in
 future releases.
 
 */
