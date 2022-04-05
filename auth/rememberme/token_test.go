@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/google/uuid"
@@ -82,7 +83,7 @@ func TestTokenManager_ValidateToken(t *testing.T) {
 	})
 	select {
 	case err = <-errCh:
-		if err != rememberme.ErrTokenInvalid {
+		if err != nil && err != rememberme.ErrTokenInvalid {
 			t.Errorf("Error validating token: %v", err)
 		}
 	}
@@ -94,7 +95,7 @@ func TestTokenManager_ValidateToken(t *testing.T) {
 	})
 	select {
 	case err = <-errCh:
-		if err != rememberme.ErrTokenInvalid {
+		if err != nil && err != rememberme.ErrTokenInvalid {
 			t.Errorf("Error validating token: %v", err)
 		}
 	}
@@ -142,6 +143,101 @@ func TestTokenManager_RevokeToken(t *testing.T) {
 	case err = <-errCh:
 		if err != rememberme.ErrTokenInvalid {
 			t.Errorf("Revoked token should not validat: %v", err)
+		}
+	}
+}
+
+func TestTokenManager_PurgeTokens(t *testing.T) {
+	oldIdentifier, err := uuid.NewUUID()
+	if err != nil {
+		t.Errorf("Unable to create UUID for token. Error: %v", err)
+	}
+	oldToken := rememberme.Token{
+		Username:   "test_user",
+		Identifier: oldIdentifier.String(),
+	}
+	errCh := tm.SaveToken(context.Background(), oldToken)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Error saving token: %v", err)
+		}
+	}
+
+	time.Sleep(5 * time.Second)
+	cutoff := time.Now()
+	time.Sleep(5 * time.Second)
+
+	newIdentifier, err := uuid.NewUUID()
+	if err != nil {
+		t.Errorf("Unable to create UUID for token. Error: %v", err)
+	}
+	newToken := rememberme.Token{
+		Username:   "test_user",
+		Identifier: newIdentifier.String(),
+	}
+	errCh = tm.SaveToken(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Error saving token: %v", err)
+		}
+	}
+
+	errCh = tm.PurgeTokens(context.Background(), "test_user", cutoff)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Error purging token: %v", err)
+		}
+	}
+
+	// oldToken should now have been purged and validation should fail
+	errCh = tm.ValidateToken(context.Background(), oldToken)
+	select {
+	case err = <-errCh:
+		if err != nil && err != rememberme.ErrTokenInvalid {
+			t.Errorf("Error validating token: %v", err)
+		}
+	}
+
+	// newToken should still validate
+	errCh = tm.ValidateToken(context.Background(), newToken)
+	select {
+	case err = <-errCh:
+		if err != nil {
+			t.Errorf("New token should still validate, but failed: %v", err)
+		}
+	}
+
+	// Purging non-existent tokens shouldn't matter
+	errCh = tm.PurgeTokens(context.Background(), "non-existent", time.Now())
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Error purging token: %v", err)
+		}
+	}
+
+	// after purging non-existent tokens,
+	//the ones that do fail should still faile,
+	//and ones that do work should still work'
+
+	// oldToken should now have been purged and validation should fail
+	errCh = tm.ValidateToken(context.Background(), oldToken)
+	select {
+	case err = <-errCh:
+		if err != nil && err != rememberme.ErrTokenInvalid {
+			t.Errorf("Error validating token: %v", err)
+		}
+	}
+
+	// newToken should still validate
+	errCh = tm.ValidateToken(context.Background(), newToken)
+	select {
+	case err = <-errCh:
+		if err != nil {
+			t.Errorf("New token should still validate, but failed: %v", err)
 		}
 	}
 }
