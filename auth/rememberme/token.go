@@ -156,12 +156,16 @@ func (m TokenManager) RevokeToken(ctx context.Context,
 	return errCh
 }
 
-// SaveToken saves the given rememberme token to the underlying datastore.
-func (m TokenManager) SaveToken(ctx context.Context, token Token) <-chan error {
+// Save saves the token to the underlying datastore
+func (m TokenManager) Save(ctx context.Context,
+	token Token) (<-chan Token, <-chan error) {
+	tokenCh := make(chan Token)
 	errCh := make(chan error)
 
 	go func() {
+		defer close(tokenCh)
 		defer close(errCh)
+
 		now := time.Now().Unix()
 		token.Created = now
 		token.LastUsed = now
@@ -169,24 +173,58 @@ func (m TokenManager) SaveToken(ctx context.Context, token Token) <-chan error {
 		doc := m.client.Collection(m.collectionName).NewDoc()
 		if _, err := doc.Set(ctx, token); err != nil {
 			errCh <- err
+			return
 		}
+
+		tokenCh <- token
 	}()
 
-	return errCh
+	return tokenCh, errCh
 }
 
-// ValidateToken validates if the given token is stored in the datastore.
+// SaveToken saves the given rememberme token to the underlying datastore.
 //
-// If the token is valid, that is the token existed, and it has not been
-// revoked, its LastUsed will be updated to the current time to record the
-// fact that the token has recently been used, otherwise a ErrTokenInvalid will
-// be returned.
-func (m TokenManager) ValidateToken(ctx context.Context,
-	token Token) <-chan error {
+// Deprecated: please use the Save method instead
+func (m TokenManager) SaveToken(ctx context.Context, token Token) <-chan error {
+	t, e := m.Save(ctx, token)
 	errCh := make(chan error)
 
 	go func() {
 		defer close(errCh)
+
+		select {
+		case err := <-e:
+			errCh <- err
+
+		case <-t:
+		}
+	}()
+	return errCh
+}
+
+// Validate checks if the given token is valid.
+//
+// A token is considered valid if it meets the following conditions:
+//
+//   1. The Username/Identifier combination exists in the datastore
+//   2. The token has not been revoked.
+//
+// This method returns a ErrTokenInvalid if the token cannot be validated.
+// This method also passes through any underlying datastore errors to the
+// caller.
+//
+// If the token is valid, its LastUsed will be updated to the current time to
+// record the fact that the token has recently been used.
+func (m TokenManager) Validate(ctx context.Context,
+	token Token) (<-chan Token, <-chan error) {
+	tokenCh := make(chan Token)
+	errCh := make(chan error)
+
+	go func() {
+		defer close(tokenCh)
+		defer close(errCh)
+
+		var tok Token
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
@@ -219,15 +257,46 @@ func (m TokenManager) ValidateToken(ctx context.Context,
 				}
 				return err
 			} else {
-				m := doc.Data()
-				m["LastUsed"] = time.Now().Unix()
-				if err = t.Set(doc.Ref, m); err != nil {
+				if err = doc.DataTo(&tok); err != nil {
+					return err
+				}
+				tok.LastUsed = time.Now().Unix()
+				if err = t.Set(doc.Ref, tok); err != nil {
 					return err
 				}
 				return nil
 			}
 		}); err != nil {
 			errCh <- err
+			return
+		}
+
+		tokenCh <- tok
+	}()
+
+	return tokenCh, errCh
+}
+
+// ValidateToken validates if the given token is stored in the datastore.
+//
+// If the token is valid, that is the token existed, and it has not been
+// revoked, its LastUsed will be updated to the current time to record the
+// fact that the token has recently been used, otherwise a ErrTokenInvalid will
+// be returned.
+//
+// Deprecated: please use the Validate method instead
+func (m TokenManager) ValidateToken(ctx context.Context,
+	token Token) <-chan error {
+	errCh := make(chan error)
+
+	go func() {
+		defer close(errCh)
+		t, e := m.Validate(ctx, token)
+
+		select {
+		case err := <-e:
+			errCh <- err
+		case <-t:
 		}
 	}()
 

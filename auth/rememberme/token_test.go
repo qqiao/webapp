@@ -42,6 +42,33 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestTokenManager_Save(t *testing.T) {
+	identifier, err := uuid.NewUUID()
+	if err != nil {
+		t.Errorf("Unable to create UUID for token. Error: %v", err)
+	}
+
+	newToken := rememberme.Token{
+		Username:   "test_user",
+		Identifier: identifier.String(),
+	}
+
+	tokenCh, errCh := tm.Save(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		t.Errorf("Error saving token: %v", err)
+	case <-tokenCh:
+	}
+
+	// Once a token is saved, subsequent validation calls should succeed
+	tokenCh, errCh = tm.Validate(context.Background(), newToken)
+	select {
+	case err = <-errCh:
+		t.Errorf("Error validating token: %v", err)
+	case <-tokenCh:
+	}
+}
+
 func TestTokenManager_SaveToken(t *testing.T) {
 	identifier, err := uuid.NewUUID()
 	if err != nil {
@@ -55,7 +82,7 @@ func TestTokenManager_SaveToken(t *testing.T) {
 
 	errCh := tm.SaveToken(context.Background(), newToken)
 	select {
-	case err := <-errCh:
+	case err = <-errCh:
 		if err != nil {
 			t.Errorf("Error saving token: %v", err)
 		}
