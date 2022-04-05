@@ -13,7 +13,7 @@ import (
 
 // Errors
 var (
-	ErrTokenInvalid = errors.New("Token invalid")
+	ErrTokenInvalid = errors.New("token invalid")
 )
 
 // Token represents a rememberme token stored in the firestore.
@@ -46,7 +46,8 @@ func NewTokenManager(client *firestore.Client, collectionName string) TokenManag
 //
 // This function DELETES all matching tokens, regardless of whether the token
 // has been revoked.
-func (m TokenManager) PurgeTokens(ctx context.Context, username string, cutoff time.Time) <-chan error {
+func (m TokenManager) PurgeTokens(ctx context.Context, username string,
+	cutoff time.Time) <-chan error {
 	errCh := make(chan error)
 
 	go func() {
@@ -96,13 +97,46 @@ func (m TokenManager) PurgeTokens(ctx context.Context, username string, cutoff t
 // Although both revoking a token and removing a token will make the
 // ValidateToken call fail, RevokeToken leaves the token stored in the data
 // store.
-func (m TokenManager) RevokeToken(ctx context.Context, token Token) <-chan error {
+func (m TokenManager) RevokeToken(ctx context.Context,
+	token Token) <-chan error {
 	errCh := make(chan error)
 
 	go func() {
 		defer close(errCh)
 
-		// TODO implement this
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
+				Filters: []f.Filter{
+					{
+						Path:     "Username",
+						Operator: "==",
+						Value:    token.Username,
+					},
+					{
+						Path:     "Identifier",
+						Operator: "==",
+						Value:    token.Identifier,
+					},
+				},
+			})
+
+			iter := q.Documents(ctx)
+			defer iter.Stop()
+
+			if doc, err := iter.Next(); err != nil {
+				return err
+			} else {
+				m := doc.Data()
+				m["Revoked"] = true
+				if err = t.Set(doc.Ref, m); err != nil {
+					return err
+				}
+				return nil
+			}
+		}); err != nil {
+			errCh <- err
+		}
 	}()
 
 	return errCh
@@ -129,17 +163,58 @@ func (m TokenManager) SaveToken(ctx context.Context, token Token) <-chan error {
 
 // ValidateToken validates if the given token is stored in the datastore.
 //
-// If the token is valid, that is the token existed and it has not been
+// If the token is valid, that is the token existed, and it has not been
 // revoked, its LastUsed will be updated to the current time to record the
-// fact that the token has recently be used, otherwise a ErrTokenInvalid will
+// fact that the token has recently been used, otherwise a ErrTokenInvalid will
 // be returned.
-func (m TokenManager) ValidateToken(ctx context.Context, token Token) <-chan error {
+func (m TokenManager) ValidateToken(ctx context.Context,
+	token Token) <-chan error {
 	errCh := make(chan error)
 
 	go func() {
 		defer close(errCh)
 
-		// TODO implement this
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
+				Filters: []f.Filter{
+					{
+						Path:     "Username",
+						Operator: "==",
+						Value:    token.Username,
+					},
+					{
+						Path:     "Identifier",
+						Operator: "==",
+						Value:    token.Identifier,
+					},
+					{
+						Path:     "Revoked",
+						Operator: "==",
+						Value:    false,
+					},
+				},
+			})
+
+			iter := q.Documents(ctx)
+			defer iter.Stop()
+
+			if doc, err := iter.Next(); err != nil {
+				if err == iterator.Done {
+					return ErrTokenInvalid
+				}
+				return err
+			} else {
+				m := doc.Data()
+				m["LastUsed"] = time.Now().Unix()
+				if err = t.Set(doc.Ref, m); err != nil {
+					return err
+				}
+				return nil
+			}
+		}); err != nil {
+			errCh <- err
+		}
 	}()
 
 	return errCh

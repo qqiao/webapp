@@ -11,4 +11,5 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: go test -v ./...
+      - run: firebase emulators:start
+      - run: FIRESTORE_EMULATOR_HOST=localhost:8080 go test -v ./...
