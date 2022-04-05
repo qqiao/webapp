@@ -29,7 +29,7 @@ var templateCache sync.Map
 //       will be returned directly.
 //    2. If a less specific value is available, then it will be returned. E.g.
 //       if the input is zh-tw but zh is available then zh will be returned
-//    3. Otherwise an empty string is returned.
+//    3. Otherwise, an empty string is returned.
 func DetermineLocale(input string, available []string) string {
 	candidate := ""
 	for _, locale := range available {
@@ -41,7 +41,7 @@ func DetermineLocale(input string, available []string) string {
 }
 
 // DetermineLocaleWithDefault tries to find the best locale for a given input
-//from a list of available locales. It applies the following logic:
+// from a list of available locales. It applies the following logic:
 //    1. If the input can be directly found in list of available locales, it
 //       will be returned directly.
 //    2. If a less specific value is available, then it will be returned. E.g.
@@ -66,10 +66,11 @@ func equalOrLessSpecific(locale string, input string) bool {
 }
 
 // GetTemplate loads the template from the given path.
-// The funtion caches the loaded template so that the same template would not
+//
+// The function caches the loaded template so that the same template would not
 // be parsed over and over again unless skipCache is set to true.
 //
-// Please note this method panics if template.ParseFiles failes in any way.
+// Please note this method panics if template.ParseFiles fails in any way.
 func GetTemplate(path string, skipCache bool) *template.Template {
 	tmpl, has := templateCache.Load(path)
 	if !has || skipCache {
