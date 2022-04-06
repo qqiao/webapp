@@ -83,6 +83,8 @@ func (m FirebaseManager) Add(ctx context.Context,
 //
 // This function will return ErrUserNotFound in the case where a user
 // matching the given user cannot be found.
+//
+// Deprecated: use Find instead
 func (m FirebaseManager) ConfirmExists(ctx context.Context, user User) <-chan error {
 	errCh := make(chan error)
 
