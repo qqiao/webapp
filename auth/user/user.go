@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package inhouse implements the in-house user authentication and management
-// system.
-//
-// Deprecated: please use the auth/user package instead.
-package inhouse
+package user
+
+// User represents a user to be stored in the datastore.
+type User struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}

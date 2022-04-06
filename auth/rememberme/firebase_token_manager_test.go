@@ -42,6 +42,42 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestFirebaseTokenManager_Add(t *testing.T) {
+	identifier := uuid.New()
+
+	newToken := rememberme.Token{
+		Username:   "test_user",
+		Identifier: identifier.String(),
+	}
+
+	tokenCh, errCh := tm.Add(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		t.Errorf("Error saving token: %v", err)
+	case <-tokenCh:
+	}
+
+	// Once a token is saved, subsequent validation calls should succeed
+	tokenCh, errCh = tm.Validate(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		t.Errorf("Error validating token: %v", err)
+
+	case <-tokenCh:
+	}
+
+	// Saving the same token again should now give me a ErrTokenDuplicate
+	tokenCh, errCh = tm.Add(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		if err != rememberme.ErrTokenDuplicate {
+			t.Errorf("Error saving token: %v", err)
+		}
+	case <-tokenCh:
+		t.Errorf("Saving the same token again should error out")
+	}
+}
+
 func TestFirebaseTokenManager_Delete(t *testing.T) {
 	identifier := uuid.New()
 
@@ -50,7 +86,7 @@ func TestFirebaseTokenManager_Delete(t *testing.T) {
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
+	tokenCh, errCh := tm.Add(context.Background(), newToken)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -95,7 +131,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		Identifier: oldIdentifier1.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), oldToken1)
+	tokenCh, errCh := tm.Add(context.Background(), oldToken1)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -108,7 +144,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		Identifier: oldIdentifier2.String(),
 	}
 
-	tokenCh, errCh = tm.Save(context.Background(), oldToken2)
+	tokenCh, errCh = tm.Add(context.Background(), oldToken2)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -125,7 +161,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		Identifier: newIdentifier.String(),
 	}
 
-	tokenCh, errCh = tm.Save(context.Background(), newToken)
+	tokenCh, errCh = tm.Add(context.Background(), newToken)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -302,7 +338,7 @@ func TestFirebaseTokenManager_Revoke(t *testing.T) {
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
+	tokenCh, errCh := tm.Add(context.Background(), newToken)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -386,42 +422,6 @@ func TestFirebaseTokenManager_RevokeToken(t *testing.T) {
 	}
 }
 
-func TestFirebaseTokenManager_Save(t *testing.T) {
-	identifier := uuid.New()
-
-	newToken := rememberme.Token{
-		Username:   "test_user",
-		Identifier: identifier.String(),
-	}
-
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error saving token: %v", err)
-	case <-tokenCh:
-	}
-
-	// Once a token is saved, subsequent validation calls should succeed
-	tokenCh, errCh = tm.Validate(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error validating token: %v", err)
-
-	case <-tokenCh:
-	}
-
-	// Saving the same token again should now give me a ErrTokenDuplicate
-	tokenCh, errCh = tm.Save(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		if err != rememberme.ErrTokenDuplicate {
-			t.Errorf("Error saving token: %v", err)
-		}
-	case <-tokenCh:
-		t.Errorf("Saving the same token again should error out")
-	}
-}
-
 func TestFirebaseTokenManager_SaveToken(t *testing.T) {
 	identifier := uuid.New()
 
@@ -456,7 +456,7 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), token)
+	tokenCh, errCh := tm.Add(context.Background(), token)
 
 	select {
 	case err := <-errCh:

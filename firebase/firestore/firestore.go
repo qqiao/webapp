@@ -16,13 +16,13 @@ package firestore
 
 import (
 	"cloud.google.com/go/firestore"
+	"github.com/qqiao/webapp/datastore"
 )
 
 // ApplyQuery takes collection reference and a custom query and applies the
-// query.
-//
-// This function returns a firestore Query object.
-func ApplyQuery(col *firestore.CollectionRef, query Query) firestore.Query {
+// query to the collection reference.
+func ApplyQuery(col *firestore.CollectionRef,
+	query datastore.Query) firestore.Query {
 	q := col.Query
 
 	if query.Limit != 0 {

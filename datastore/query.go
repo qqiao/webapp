@@ -12,35 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package firestore
-
-import "github.com/qqiao/webapp/datastore"
+package datastore
 
 // Direction is the sorting direction
-//
-// Deprecated: please use datastore.Direction instead.
-type Direction = datastore.Direction
+type Direction string
 
 // Ordering directions
-//
-// Deprecated: please use their datastore.DirectionASC and
-// datastore.DirectionDESC instead.
 const (
-	DirectionASC  = datastore.DirectionASC
-	DirectionDESC = datastore.DirectionDESC
+	DirectionASC  Direction = "ASC"
+	DirectionDESC Direction = "DESC"
 )
 
 // Query represents the abstraction of any datastore query.
-//
-// Deprecated: please use datastore.Query instead.
-type Query = datastore.Query
+type Query struct {
+	Limit   int      `json:"limit"`
+	Orders  []Order  `json:"orders"`
+	Filters []Filter `json:"filters"`
+}
 
 // Order represents ordering criterion.
-//
-// Deprecated: please use datastore.Order instead.
-type Order = datastore.Order
+type Order struct {
+	Path      string    `json:"path"`
+	Direction Direction `json:"direction"`
+}
 
 // Filter represents filtering criterion.
-//
-// Deprecated: please use datastore.Filter instead.
-type Filter = datastore.Filter
+type Filter struct {
+	Path     string      `json:"path"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"`
+}

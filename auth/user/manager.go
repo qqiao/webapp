@@ -12,8 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package inhouse implements the in-house user authentication and management
-// system.
-//
-// Deprecated: please use the auth/user package instead.
-package inhouse
+package user
+
+import (
+	"context"
+	"errors"
+
+	"github.com/qqiao/webapp/datastore"
+)
+
+// Errors.
+var (
+	ErrUserDuplicate = errors.New("duplicate user")
+	ErrUserNotFound  = errors.New("user not found")
+)
+
+// Manager is responsible for all user related operations
+type Manager interface {
+	// Add adds a user to the database of users.
+	//
+	// Add will return ErrUserDuplicate if the user already exists  in the
+	// datastore.
+	Add(ctx context.Context, user User) <-chan error
+
+	Find(ctx context.Context,
+		query datastore.Query) (<-chan *User, <-chan error)
+}
