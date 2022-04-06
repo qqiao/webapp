@@ -381,10 +381,10 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 			defer iter.Stop()
 
 			ds, err := iter.Next()
+			if err == iterator.Done {
+				return ErrTokenInvalid
+			}
 			if err != nil {
-				if err == iterator.Done {
-					return ErrTokenInvalid
-				}
 				return err
 			}
 

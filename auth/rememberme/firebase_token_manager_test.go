@@ -42,6 +42,52 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestFirebaseTokenManager_Delete(t *testing.T) {
+	identifier := uuid.New()
+
+	newToken := rememberme.Token{
+		Username:   "test_user",
+		Identifier: identifier.String(),
+	}
+
+	tokenCh, errCh := tm.Save(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		t.Errorf("Error saving token: %v", err)
+
+	case <-tokenCh:
+	}
+
+	// token should validate at this point
+	tokenCh, errCh = tm.Validate(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		t.Errorf("Error validating token: %v", err)
+
+	case <-tokenCh:
+	}
+
+	errCh = tm.Delete(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Error deleting token: %v", err)
+		}
+	}
+
+	// Validation should fail after the token has been deleted
+	tokenCh, errCh = tm.Validate(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		if err != rememberme.ErrTokenInvalid {
+			t.Errorf("Revoked token should not validat: %v", err)
+		}
+
+	case <-tokenCh:
+		t.Error("Validation should have failed for revoked token")
+	}
+}
+
 func TestFirebaseTokenManager_Purge(t *testing.T) {
 	oldIdentifier1 := uuid.New()
 	oldToken1 := rememberme.Token{
@@ -405,18 +451,19 @@ func TestFirebaseTokenManager_SaveToken(t *testing.T) {
 func TestFirebaseTokenManager_Validate(t *testing.T) {
 	identifier := uuid.New()
 
-	newToken := rememberme.Token{
+	token := rememberme.Token{
 		Username:   "test_user",
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
+	tokenCh, errCh := tm.Save(context.Background(), token)
 
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
 
-	case <-tokenCh:
+	case t := <-tokenCh:
+		token = *t
 	}
 
 	// Non-existent users shouldn't have valid tokens
@@ -445,6 +492,27 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 
 	case <-tokenCh:
 		t.Error("Validation should fail for bad ID")
+	}
+
+	time.Sleep(5 * time.Second)
+
+	// Validation should suceed, and last used should get updated
+	tokenCh, errCh = tm.Validate(context.Background(), rememberme.Token{
+		Username:   "test_user",
+		Identifier: identifier.String(),
+	})
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Validation should succeed, but failed: %v", err)
+		}
+
+	case newT := <-tokenCh:
+		if token.LastUsed >= newT.LastUsed {
+			t.Logf("Old last used: %d", token.LastUsed)
+			t.Logf("New last used: %d", newT.LastUsed)
+			t.Error("Last used should have been updated after validation")
+		}
 	}
 }
 
