@@ -48,6 +48,58 @@ func NewFirebaseTokenManager(client *firestore.Client,
 	}
 }
 
+// Delete deletes the token permanently from the underlying datastore.
+//
+// Once deleted, a token cannot be recovered
+func (m FirebaseTokenManager) Delete(ctx context.Context,
+	token Token) <-chan error {
+	errCh := make(chan error)
+
+	go func() {
+		defer close(errCh)
+
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
+				Filters: []f.Filter{
+					{
+						Path:     "Username",
+						Operator: "==",
+						Value:    token.Username,
+					},
+					{
+						Path:     "Identifier",
+						Operator: "==",
+						Value:    token.Identifier,
+					},
+				},
+			})
+
+			iter := q.Documents(ctx)
+			defer iter.Stop()
+
+			for {
+				ds, err := iter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					return err
+				}
+
+				if err = t.Delete(ds.Ref); err != nil {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			errCh <- err
+		}
+	}()
+
+	return errCh
+}
+
 // Purge removes tokens belonging to a given user last used before or equal to
 // the cutoff time.
 //
@@ -80,18 +132,20 @@ func (m FirebaseTokenManager) Purge(ctx context.Context, username string,
 			iter := q.Documents(ctx)
 			defer iter.Stop()
 
-			token, err := iter.Next()
-			if err != nil {
+			for {
+				ds, err := iter.Next()
 				if err == iterator.Done {
-					return nil
+					break
 				}
-				return err
-			}
-			if err = t.Delete(token.Ref); err != nil {
-				return err
+				if err != nil {
+					return err
+				}
+
+				if err = t.Delete(ds.Ref); err != nil {
+					return err
+				}
 			}
 			return nil
-
 		}); err != nil {
 			errCh <- err
 		}
@@ -148,17 +202,17 @@ func (m FirebaseTokenManager) Revoke(ctx context.Context,
 			iter := q.Documents(ctx)
 			defer iter.Stop()
 
-			doc, err := iter.Next()
+			ds, err := iter.Next()
 			if err != nil {
 				return err
 			}
 
-			if err = doc.DataTo(&tok); err != nil {
+			if err = ds.DataTo(&tok); err != nil {
 				return err
 			}
 
 			tok.Revoked = true
-			if err = t.Set(doc.Ref, tok); err != nil {
+			if err = t.Set(ds.Ref, tok); err != nil {
 				return err
 			}
 			return nil
@@ -198,6 +252,9 @@ func (m FirebaseTokenManager) RevokeToken(ctx context.Context,
 }
 
 // Save saves the token to the underlying datastore
+//
+// This function will return ErrTokenDuplicate if the given Username
+// Identifier combination already exists in the datastore
 func (m FirebaseTokenManager) Save(ctx context.Context,
 	token Token) (<-chan *Token, <-chan error) {
 	tokenCh := make(chan *Token)
@@ -211,10 +268,40 @@ func (m FirebaseTokenManager) Save(ctx context.Context,
 		token.Created = now
 		token.LastUsed = now
 		token.Revoked = false
-		doc := m.client.Collection(m.collectionName).NewDoc()
-		if _, err := doc.Set(ctx, token); err != nil {
+
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
+				Filters: []f.Filter{
+					{
+						Path:     "Username",
+						Operator: "==",
+						Value:    token.Username,
+					},
+					{
+						Path:     "Identifier",
+						Operator: "==",
+						Value:    token.Identifier,
+					},
+				},
+			})
+
+			iter := q.Documents(ctx)
+			defer iter.Stop()
+
+			_, err := iter.Next()
+			if err != iterator.Done {
+				return ErrTokenDuplicate
+			}
+
+			doc := m.client.Collection(m.collectionName).NewDoc()
+			if err = t.Set(doc, token); err != nil {
+				return err
+			}
+			return nil
+
+		}); err != nil {
 			errCh <- err
-			return
 		}
 
 		tokenCh <- &token
@@ -293,7 +380,7 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 			iter := q.Documents(ctx)
 			defer iter.Stop()
 
-			doc, err := iter.Next()
+			ds, err := iter.Next()
 			if err != nil {
 				if err == iterator.Done {
 					return ErrTokenInvalid
@@ -301,11 +388,11 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 				return err
 			}
 
-			if err = doc.DataTo(&tok); err != nil {
+			if err = ds.DataTo(&tok); err != nil {
 				return err
 			}
 			tok.LastUsed = time.Now().Unix()
-			if err = t.Set(doc.Ref, tok); err != nil {
+			if err = t.Set(ds.Ref, tok); err != nil {
 				return err
 			}
 			return nil

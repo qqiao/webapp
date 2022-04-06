@@ -21,6 +21,11 @@ import (
 
 // TokenManager manages all rememberme token related operations.
 type TokenManager interface {
+	// Delete deletes the token permanently from the underlying datastore.
+	//
+	// Once deleted, a token cannot be recovered
+	Delete(ctx context.Context, token Token) <-chan error
+
 	// Purge removes tokens belonging to a given user last used before or equal
 	// to the cutoff time.
 	//
@@ -33,10 +38,13 @@ type TokenManager interface {
 	// Although both revoking a token and removing a token will make the
 	// ValidateToken call fail, RevokeToken leaves the token stored in the data
 	// store.
-	Revoke(context.Context, Token) (<-chan *Token, <-chan error)
+	Revoke(ctx context.Context, token Token) (<-chan *Token, <-chan error)
 
 	// Save saves the token to the underlying datastore
-	Save(context.Context, Token) (<-chan *Token, <-chan error)
+	//
+	// This function will return ErrTokenDuplicate if the given Username
+	// Identifier combination already exists in the datastore
+	Save(ctx context.Context, token Token) (<-chan *Token, <-chan error)
 
 	// Validate checks if the given token is valid.
 	//
@@ -51,5 +59,5 @@ type TokenManager interface {
 	//
 	// If the token is valid, its LastUsed will be updated to the current time
 	// to record the fact that the token has recently been used.
-	Validate(context.Context, Token) (<-chan *Token, <-chan error)
+	Validate(ctx context.Context, token Token) (<-chan *Token, <-chan error)
 }

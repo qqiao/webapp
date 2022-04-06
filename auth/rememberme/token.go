@@ -18,10 +18,12 @@ import "errors"
 
 // Errors
 var (
-	ErrTokenInvalid = errors.New("token invalid")
+	ErrTokenDuplicate = errors.New("token duplicate")
+	ErrTokenNotFound  = errors.New("token not found")
+	ErrTokenInvalid   = errors.New("token invalid")
 )
 
-// Token represents a rememberme token stored in the firestore.
+// Token represents a rememberme token stored.
 type Token struct {
 	Username   string
 	Identifier string

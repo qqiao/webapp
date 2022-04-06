@@ -43,13 +43,26 @@ func TestMain(m *testing.M) {
 }
 
 func TestFirebaseTokenManager_Purge(t *testing.T) {
-	oldIdentifier := uuid.New()
-	oldToken := rememberme.Token{
+	oldIdentifier1 := uuid.New()
+	oldToken1 := rememberme.Token{
 		Username:   "test_user",
-		Identifier: oldIdentifier.String(),
+		Identifier: oldIdentifier1.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), oldToken)
+	tokenCh, errCh := tm.Save(context.Background(), oldToken1)
+	select {
+	case err := <-errCh:
+		t.Errorf("Error saving token: %v", err)
+	case <-tokenCh:
+	}
+
+	oldIdentifier2 := uuid.New()
+	oldToken2 := rememberme.Token{
+		Username:   "test_user",
+		Identifier: oldIdentifier2.String(),
+	}
+
+	tokenCh, errCh = tm.Save(context.Background(), oldToken2)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -81,8 +94,19 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		}
 	}
 
-	// oldToken should now have been purged and validation should fail
-	tokenCh, errCh = tm.Validate(context.Background(), oldToken)
+	// oldToken1 should now have been purged and validation should fail
+	tokenCh, errCh = tm.Validate(context.Background(), oldToken1)
+	select {
+	case err := <-errCh:
+		if err != rememberme.ErrTokenInvalid {
+			t.Errorf("Error validating token: %v", err)
+		}
+	case <-tokenCh:
+		t.Errorf("Shouldn't get a token as validation should have failed")
+	}
+
+	// oldToken1 should now have been purged and validation should fail
+	tokenCh, errCh = tm.Validate(context.Background(), oldToken2)
 	select {
 	case err := <-errCh:
 		if err != rememberme.ErrTokenInvalid {
@@ -115,7 +139,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	// and ones that do work should still work'
 
 	// oldToken should now have been purged and validation should fail
-	tokenCh, errCh = tm.Validate(context.Background(), oldToken)
+	tokenCh, errCh = tm.Validate(context.Background(), oldToken1)
 	select {
 	case err := <-errCh:
 		if err != rememberme.ErrTokenInvalid {
@@ -338,6 +362,17 @@ func TestFirebaseTokenManager_Save(t *testing.T) {
 		t.Errorf("Error validating token: %v", err)
 
 	case <-tokenCh:
+	}
+
+	// Saving the same token again should now give me a ErrTokenDuplicate
+	tokenCh, errCh = tm.Save(context.Background(), newToken)
+	select {
+	case err := <-errCh:
+		if err != rememberme.ErrTokenDuplicate {
+			t.Errorf("Error saving token: %v", err)
+		}
+	case <-tokenCh:
+		t.Errorf("Saving the same token again should error out")
 	}
 }
 
