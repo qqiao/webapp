@@ -67,7 +67,7 @@ func TestFirebaseManager_Add(t *testing.T) {
 		t.Error("Adding the same user again should result in ErrUserDuplicate")
 	}
 
-	// We should be able to retrive the user
+	// We should be able to retrieve the user
 	foundCh, errCh := m.Find(context.Background(), datastore.Query{
 		Filters: []datastore.Filter{
 			{
@@ -114,7 +114,7 @@ func TestFirebaseManager_Find(t *testing.T) {
 	case <-userCh:
 	}
 
-	// We should be able to retrive the user
+	// We should be able to retrieve the user
 	foundCh, errCh := m.Find(context.Background(), datastore.Query{
 		Filters: []datastore.Filter{
 			{
@@ -145,7 +145,7 @@ func TestFirebaseManager_Find(t *testing.T) {
 		}
 	}
 
-	// We should be able to retrive the user with less restrictive criteria
+	// We should be able to retrieve the user with less restrictive criteria
 	foundCh, errCh = m.Find(context.Background(), datastore.Query{
 		Filters: []datastore.Filter{
 			{
@@ -171,7 +171,7 @@ func TestFirebaseManager_Find(t *testing.T) {
 		}
 	}
 
-	// We shouldn't be abound to find non-existent users
+	// We shouldn't be able to find non-existent users
 	foundCh, errCh = m.Find(context.Background(), datastore.Query{
 		Filters: []datastore.Filter{
 			{
