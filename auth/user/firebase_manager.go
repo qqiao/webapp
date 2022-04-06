@@ -79,52 +79,7 @@ func (m FirebaseManager) Add(ctx context.Context,
 	return userCh, errCh
 }
 
-// ConfirmExists looks for the user with the given username and password.
-//
-// This function will return ErrUserNotFound in the case where a user
-// matching the given user cannot be found.
-//
-// Deprecated: use Find instead
-func (m FirebaseManager) ConfirmExists(ctx context.Context, user User) <-chan error {
-	errCh := make(chan error)
-
-	go func() {
-		defer close(errCh)
-
-		q := f.ApplyQuery(m.client.Collection(m.collectionName),
-			datastore.Query{
-				Filters: []datastore.Filter{
-					{
-						Path:     "Username",
-						Operator: "==",
-						Value:    user.Username,
-					},
-					{
-						Path:     "Password",
-						Operator: "==",
-						Value:    user.Password,
-					},
-				},
-			})
-
-		iter := q.Documents(ctx)
-		defer iter.Stop()
-
-		if _, err := iter.Next(); err != nil {
-			// If we immediately get the done error, it means that we didn't find
-			// the user
-			if err == iterator.Done {
-				errCh <- ErrUserNotFound
-			} else {
-				errCh <- err
-			}
-		}
-	}()
-
-	return errCh
-}
-
-// Find finds the user based on the given query criteron
+// Find finds the user based on the given query criterion.
 func (m FirebaseManager) Find(ctx context.Context,
 	query datastore.Query) (<-chan (<-chan *User), <-chan error) {
 
