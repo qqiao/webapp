@@ -34,7 +34,7 @@ func setUp() {
 		log.Fatalf("Unable to initialize firebase client. Error: %v", err)
 	}
 
-	tm = rememberme.NewFirebaseTokenManager(client, "TestCollection")
+	tm = rememberme.NewFirebaseTokenManager(client, "TestTokenCollection")
 }
 
 func TestMain(m *testing.M) {

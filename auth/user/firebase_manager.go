@@ -16,14 +16,16 @@ package user
 
 import (
 	"context"
-	"log"
 
 	"cloud.google.com/go/firestore"
+	"github.com/qqiao/webapp/datastore"
 	f "github.com/qqiao/webapp/firebase/firestore"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+const defaultBatchSize = 10
 
 // FirebaseManager is responsible for all user related operations
 type FirebaseManager struct {
@@ -45,33 +47,36 @@ func NewFirebaseManager(client *firestore.Client,
 //
 // Please note that Add will return ErrUserDuplicate if the user already exists
 // in the datastore.
-func (m FirebaseManager) Add(ctx context.Context, user User) <-chan error {
+func (m FirebaseManager) Add(ctx context.Context,
+	usr User) (<-chan *User, <-chan error) {
+	userCh := make(chan *User)
 	errCh := make(chan error)
 
 	go func() {
+		defer close(userCh)
 		defer close(errCh)
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			ref := m.client.Collection(m.collectionName).Doc(user.Username)
+			ref := m.client.Collection(m.collectionName).Doc(usr.Username)
 			_, err := t.Get(ref)
 			if err == nil {
-				log.Printf("User %s already exists", user.Username)
 				return ErrUserDuplicate
 			}
 
 			if err != nil && status.Code(err) != codes.NotFound {
-				log.Printf("Error retrieving data from DB. %v", err)
 				return err
 			}
 
-			return t.Set(ref, user)
+			return t.Set(ref, usr)
 		}); err != nil {
 			errCh <- err
+			return
 		}
+		userCh <- &usr
 	}()
 
-	return errCh
+	return userCh, errCh
 }
 
 // ConfirmExists looks for the user with the given username and password.
@@ -84,20 +89,21 @@ func (m FirebaseManager) ConfirmExists(ctx context.Context, user User) <-chan er
 	go func() {
 		defer close(errCh)
 
-		q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
-			Filters: []f.Filter{
-				{
-					Path:     "Username",
-					Operator: "==",
-					Value:    user.Username,
+		q := f.ApplyQuery(m.client.Collection(m.collectionName),
+			datastore.Query{
+				Filters: []datastore.Filter{
+					{
+						Path:     "Username",
+						Operator: "==",
+						Value:    user.Username,
+					},
+					{
+						Path:     "Password",
+						Operator: "==",
+						Value:    user.Password,
+					},
 				},
-				{
-					Path:     "Password",
-					Operator: "==",
-					Value:    user.Password,
-				},
-			},
-		})
+			})
 
 		iter := q.Documents(ctx)
 		defer iter.Stop()
@@ -114,4 +120,86 @@ func (m FirebaseManager) ConfirmExists(ctx context.Context, user User) <-chan er
 	}()
 
 	return errCh
+}
+
+// Find finds the user based on the given query criteron
+func (m FirebaseManager) Find(ctx context.Context,
+	query datastore.Query) (<-chan (<-chan *User), <-chan error) {
+
+	resultsCh := make(chan (<-chan *User))
+	errCh := make(chan error)
+
+	go func() {
+		defer close(resultsCh)
+		defer close(errCh)
+
+		// We check the batch size here so that we can use a buffered channel for
+		// better performance
+		batchSize := defaultBatchSize
+		if query.Limit != 0 {
+			batchSize = query.Limit
+		}
+		usersCh := make(chan *User, batchSize)
+		defer close(usersCh)
+
+		q := f.ApplyQuery(m.client.Collection(m.collectionName), query)
+
+		iter := q.Documents(ctx)
+		defer iter.Stop()
+
+		for {
+			ref, err := iter.Next()
+			if err == iterator.Done {
+				resultsCh <- usersCh
+				return
+			}
+
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			var user User
+			if err = ref.DataTo(&user); err != nil {
+				errCh <- err
+				return
+			}
+
+			usersCh <- &user
+		}
+	}()
+
+	return resultsCh, errCh
+}
+
+// Update updates the given user record.
+//
+// Update will return ErrUserNotFound if the user cannot be found in the
+// underlying datastore
+func (m FirebaseManager) Update(ctx context.Context,
+	user User) (<-chan *User, <-chan error) {
+	userCh := make(chan *User)
+	errCh := make(chan error)
+
+	go func() {
+		defer close(userCh)
+		defer close(errCh)
+
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			ref := m.client.Collection(m.collectionName).Doc(user.Username)
+			_, err := t.Get(ref)
+			if err != nil && status.Code(err) != codes.NotFound {
+				return ErrUserNotFound
+			}
+
+			return t.Set(ref, user)
+		}); err != nil {
+			errCh <- err
+			return
+		}
+		userCh <- &user
+	}()
+
+	return userCh, errCh
 }

@@ -223,6 +223,7 @@ func (m FirebaseTokenManager) Revoke(ctx context.Context,
 
 		}); err != nil {
 			errCh <- err
+			return
 		}
 		tokenCh <- &tok
 	}()
@@ -307,8 +308,8 @@ func (m FirebaseTokenManager) Add(ctx context.Context,
 
 		}); err != nil {
 			errCh <- err
+			return
 		}
-
 		tokenCh <- &token
 	}()
 
@@ -407,7 +408,6 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 			errCh <- err
 			return
 		}
-
 		tokenCh <- &tok
 	}()
 

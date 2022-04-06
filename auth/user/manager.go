@@ -33,8 +33,15 @@ type Manager interface {
 	//
 	// Add will return ErrUserDuplicate if the user already exists  in the
 	// datastore.
-	Add(ctx context.Context, user User) <-chan error
+	Add(ctx context.Context, user User) (<-chan *User, <-chan error)
 
+	// Find finds the user based on the given query criteron
 	Find(ctx context.Context,
-		query datastore.Query) (<-chan *User, <-chan error)
+		query datastore.Query) (<-chan (<-chan *User), <-chan error)
+
+	// Update updates the given user record.
+	//
+	// Update will return ErrUserNotFound if the user cannot be found in the
+	// underlying datastore
+	Update(ctx context.Context, user User) (<-chan *User, <-chan error)
 }
