@@ -43,11 +43,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestFirebaseTokenManager_Add(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 
 	token := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	t.Run("Addition should succeed", func(t *testing.T) {
@@ -84,10 +84,10 @@ func TestFirebaseTokenManager_Add(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_Delete(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 	token := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	t.Run("Initial addition", func(t *testing.T) {
@@ -134,10 +134,10 @@ func TestFirebaseTokenManager_Delete(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_Purge(t *testing.T) {
-	oldIdentifier1 := uuid.New()
+	oldIdentifier1 := uuid.NewString()
 	oldToken1 := rememberme.Token{
 		Username:   "test_user",
-		Identifier: oldIdentifier1.String(),
+		Identifier: oldIdentifier1,
 	}
 
 	tokenCh, errCh := tm.Add(context.Background(), oldToken1)
@@ -147,10 +147,10 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	case <-tokenCh:
 	}
 
-	oldIdentifier2 := uuid.New()
+	oldIdentifier2 := uuid.NewString()
 	oldToken2 := rememberme.Token{
 		Username:   "test_user",
-		Identifier: oldIdentifier2.String(),
+		Identifier: oldIdentifier2,
 	}
 
 	tokenCh, errCh = tm.Add(context.Background(), oldToken2)
@@ -164,10 +164,10 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	cutoff := time.Now()
 	time.Sleep(5 * time.Second)
 
-	newIdentifier := uuid.New()
+	newIdentifier := uuid.NewString()
 	newToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: newIdentifier.String(),
+		Identifier: newIdentifier,
 	}
 
 	tokenCh, errCh = tm.Add(context.Background(), newToken)
@@ -251,10 +251,10 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_PurgeTokens(t *testing.T) {
-	oldIdentifier := uuid.New()
+	oldIdentifier := uuid.NewString()
 	oldToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: oldIdentifier.String(),
+		Identifier: oldIdentifier,
 	}
 	errCh := tm.SaveToken(context.Background(), oldToken)
 	select {
@@ -268,10 +268,10 @@ func TestFirebaseTokenManager_PurgeTokens(t *testing.T) {
 	cutoff := time.Now()
 	time.Sleep(5 * time.Second)
 
-	newIdentifier := uuid.New()
+	newIdentifier := uuid.NewString()
 	newToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: newIdentifier.String(),
+		Identifier: newIdentifier,
 	}
 	errCh = tm.SaveToken(context.Background(), newToken)
 	select {
@@ -340,11 +340,11 @@ func TestFirebaseTokenManager_PurgeTokens(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_Revoke(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 
 	newToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	tokenCh, errCh := tm.Add(context.Background(), newToken)
@@ -389,11 +389,11 @@ func TestFirebaseTokenManager_Revoke(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_RevokeToken(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 
 	newToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	errCh := tm.SaveToken(context.Background(), newToken)
@@ -432,11 +432,11 @@ func TestFirebaseTokenManager_RevokeToken(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_SaveToken(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 
 	newToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	errCh := tm.SaveToken(context.Background(), newToken)
@@ -458,11 +458,11 @@ func TestFirebaseTokenManager_SaveToken(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_Validate(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 
 	token := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	tokenCh, errCh := tm.Add(context.Background(), token)
@@ -508,7 +508,7 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 	// Validation should suceed, and last used should get updated
 	tokenCh, errCh = tm.Validate(context.Background(), rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	})
 	select {
 	case err := <-errCh:
@@ -524,11 +524,11 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 }
 
 func TestFirebaseTokenManager_ValidateToken(t *testing.T) {
-	identifier := uuid.New()
+	identifier := uuid.NewString()
 
 	newToken := rememberme.Token{
 		Username:   "test_user",
-		Identifier: identifier.String(),
+		Identifier: identifier,
 	}
 
 	errCh := tm.SaveToken(context.Background(), newToken)
