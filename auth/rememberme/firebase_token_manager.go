@@ -31,14 +31,6 @@ type FirebaseTokenManager struct {
 	collectionName string
 }
 
-// NewTokenManager creates a token manager with the given firestore client
-// and collection name to store the rememberme tokens in.
-//
-// Deprecated: Please use NewFirebaseTokenManager instead.
-func NewTokenManager(client *firestore.Client, collectionName string) FirebaseTokenManager {
-	return NewFirebaseTokenManager(client, collectionName)
-}
-
 // NewFirebaseTokenManager creates a token manager with the given firestore
 // client and collection name to store the rememberme tokens in.
 func NewFirebaseTokenManager(client *firestore.Client,
@@ -47,6 +39,66 @@ func NewFirebaseTokenManager(client *firestore.Client,
 		client:         client,
 		collectionName: collectionName,
 	}
+}
+
+// Add adds the token to the underlying datastore
+//
+// This function will return ErrTokenDuplicate if the given Username
+// Identifier combination already exists in the datastore
+func (m FirebaseTokenManager) Add(ctx context.Context,
+	token Token) (<-chan *Token, <-chan error) {
+	tokenCh := make(chan *Token)
+	errCh := make(chan error)
+
+	go func() {
+		defer close(tokenCh)
+		defer close(errCh)
+
+		now := time.Now().Unix()
+		token.Created = now
+		token.LastUsed = now
+		token.Revoked = false
+
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			q := f.ApplyQuery(m.client.Collection(m.collectionName),
+				datastore.Query{
+					Filters: []datastore.Filter{
+						{
+							Path:     "Username",
+							Operator: "==",
+							Value:    token.Username,
+						},
+						{
+							Path:     "Identifier",
+							Operator: "==",
+							Value:    token.Identifier,
+						},
+					},
+				})
+
+			iter := q.Documents(ctx)
+			defer iter.Stop()
+
+			_, err := iter.Next()
+			if err != iterator.Done {
+				return ErrTokenDuplicate
+			}
+
+			doc := m.client.Collection(m.collectionName).NewDoc()
+			if err = t.Set(doc, token); err != nil {
+				return err
+			}
+			return nil
+
+		}); err != nil {
+			errCh <- err
+			return
+		}
+		tokenCh <- &token
+	}()
+
+	return tokenCh, errCh
 }
 
 // Delete deletes the token permanently from the underlying datastore.
@@ -157,18 +209,6 @@ func (m FirebaseTokenManager) Purge(ctx context.Context, username string,
 	return errCh
 }
 
-// PurgeTokens removes tokens belonging to a given user last used before or
-// equal to the cutoff time.
-//
-// This function DELETES all matching tokens, regardless of whether the token
-// has been revoked.
-//
-// Deprecated: please use method Purge instead
-func (m FirebaseTokenManager) PurgeTokens(ctx context.Context, username string,
-	cutoff time.Time) <-chan error {
-	return m.Purge(ctx, username, cutoff)
-}
-
 // Revoke revokes a given token by marking the Revoked field to true.
 //
 // Although both revoking a token and removing a token will make the
@@ -229,112 +269,6 @@ func (m FirebaseTokenManager) Revoke(ctx context.Context,
 	}()
 
 	return tokenCh, errCh
-}
-
-// RevokeToken revokes a given token by marking the Revoked field to true.
-//
-// Although both revoking a token and removing a token will make the
-// ValidateToken call fail, RevokeToken leaves the token stored in the data
-// store.
-//
-// Deprecated: please use Revoke instead
-func (m FirebaseTokenManager) RevokeToken(ctx context.Context,
-	token Token) <-chan error {
-	t, e := m.Revoke(ctx, token)
-	errCh := make(chan error)
-
-	go func() {
-		defer close(errCh)
-
-		select {
-		case err := <-e:
-			errCh <- err
-
-		case <-t:
-		}
-	}()
-	return errCh
-}
-
-// Add adds the token to the underlying datastore
-//
-// This function will return ErrTokenDuplicate if the given Username
-// Identifier combination already exists in the datastore
-func (m FirebaseTokenManager) Add(ctx context.Context,
-	token Token) (<-chan *Token, <-chan error) {
-	tokenCh := make(chan *Token)
-	errCh := make(chan error)
-
-	go func() {
-		defer close(tokenCh)
-		defer close(errCh)
-
-		now := time.Now().Unix()
-		token.Created = now
-		token.LastUsed = now
-		token.Revoked = false
-
-		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
-			t *firestore.Transaction) error {
-			q := f.ApplyQuery(m.client.Collection(m.collectionName),
-				datastore.Query{
-					Filters: []datastore.Filter{
-						{
-							Path:     "Username",
-							Operator: "==",
-							Value:    token.Username,
-						},
-						{
-							Path:     "Identifier",
-							Operator: "==",
-							Value:    token.Identifier,
-						},
-					},
-				})
-
-			iter := q.Documents(ctx)
-			defer iter.Stop()
-
-			_, err := iter.Next()
-			if err != iterator.Done {
-				return ErrTokenDuplicate
-			}
-
-			doc := m.client.Collection(m.collectionName).NewDoc()
-			if err = t.Set(doc, token); err != nil {
-				return err
-			}
-			return nil
-
-		}); err != nil {
-			errCh <- err
-			return
-		}
-		tokenCh <- &token
-	}()
-
-	return tokenCh, errCh
-}
-
-// SaveToken saves the given rememberme token to the underlying datastore.
-//
-// Deprecated: please use the Save method instead
-func (m FirebaseTokenManager) SaveToken(ctx context.Context,
-	token Token) <-chan error {
-	t, e := m.Add(ctx, token)
-	errCh := make(chan error)
-
-	go func() {
-		defer close(errCh)
-
-		select {
-		case err := <-e:
-			errCh <- err
-
-		case <-t:
-		}
-	}()
-	return errCh
 }
 
 // Validate checks if the given token is valid.
@@ -412,30 +346,4 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 	}()
 
 	return tokenCh, errCh
-}
-
-// ValidateToken validates if the given token is stored in the datastore.
-//
-// If the token is valid, that is the token existed, and it has not been
-// revoked, its LastUsed will be updated to the current time to record the
-// fact that the token has recently been used, otherwise a ErrTokenInvalid will
-// be returned.
-//
-// Deprecated: please use the Validate method instead
-func (m FirebaseTokenManager) ValidateToken(ctx context.Context,
-	token Token) <-chan error {
-	errCh := make(chan error)
-
-	go func() {
-		defer close(errCh)
-		t, e := m.Validate(ctx, token)
-
-		select {
-		case err := <-e:
-			errCh <- err
-		case <-t:
-		}
-	}()
-
-	return errCh
 }
