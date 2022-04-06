@@ -21,6 +21,12 @@ import (
 
 // TokenManager manages all rememberme token related operations.
 type TokenManager interface {
+	// Add adds the token to the underlying datastore
+	//
+	// This function will return ErrTokenDuplicate if the given Username
+	// Identifier combination already exists in the datastore
+	Add(ctx context.Context, token Token) (<-chan *Token, <-chan error)
+
 	// Delete deletes the token permanently from the underlying datastore.
 	//
 	// Once deleted, a token cannot be recovered
@@ -39,12 +45,6 @@ type TokenManager interface {
 	// ValidateToken call fail, RevokeToken leaves the token stored in the data
 	// store.
 	Revoke(ctx context.Context, token Token) (<-chan *Token, <-chan error)
-
-	// Save saves the token to the underlying datastore
-	//
-	// This function will return ErrTokenDuplicate if the given Username
-	// Identifier combination already exists in the datastore
-	Save(ctx context.Context, token Token) (<-chan *Token, <-chan error)
 
 	// Validate checks if the given token is valid.
 	//

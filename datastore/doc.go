@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package inhouse implements the in-house user authentication and management
-// system.
-//
-// Deprecated: please use the auth/user package instead.
-package inhouse
+/*
+
+Package datastore provides abstraction to datastore operations
+
+*/
+package datastore

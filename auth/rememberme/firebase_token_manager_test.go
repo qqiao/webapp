@@ -34,7 +34,7 @@ func setUp() {
 		log.Fatalf("Unable to initialize firebase client. Error: %v", err)
 	}
 
-	tm = rememberme.NewFirebaseTokenManager(client, "TestCollection")
+	tm = rememberme.NewFirebaseTokenManager(client, "TestTokenCollection")
 }
 
 func TestMain(m *testing.M) {
@@ -42,50 +42,95 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestFirebaseTokenManager_Delete(t *testing.T) {
+func TestFirebaseTokenManager_Add(t *testing.T) {
 	identifier := uuid.New()
 
-	newToken := rememberme.Token{
+	token := rememberme.Token{
 		Username:   "test_user",
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error saving token: %v", err)
-
-	case <-tokenCh:
-	}
-
-	// token should validate at this point
-	tokenCh, errCh = tm.Validate(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error validating token: %v", err)
-
-	case <-tokenCh:
-	}
-
-	errCh = tm.Delete(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		if err != nil {
-			t.Errorf("Error deleting token: %v", err)
+	t.Run("Addition should succeed", func(t *testing.T) {
+		tokenCh, errCh := tm.Add(context.Background(), token)
+		select {
+		case err := <-errCh:
+			t.Errorf("Error saving token: %v", err)
+		case <-tokenCh:
 		}
+	})
+
+	t.Run("Added token should validate", func(t *testing.T) {
+		tokenCh, errCh := tm.Validate(context.Background(), token)
+		select {
+		case err := <-errCh:
+			t.Errorf("Error validating token: %v", err)
+
+		case <-tokenCh:
+		}
+	})
+
+	t.Run("Adding the same token should produce ErrTokenDuplicate",
+		func(t *testing.T) {
+			tokenCh, errCh := tm.Add(context.Background(), token)
+			select {
+			case err := <-errCh:
+				if err != rememberme.ErrTokenDuplicate {
+					t.Errorf("Error saving token: %v", err)
+				}
+			case <-tokenCh:
+				t.Errorf("Saving the same token again should error out")
+			}
+		})
+}
+
+func TestFirebaseTokenManager_Delete(t *testing.T) {
+	identifier := uuid.New()
+	token := rememberme.Token{
+		Username:   "test_user",
+		Identifier: identifier.String(),
 	}
 
-	// Validation should fail after the token has been deleted
-	tokenCh, errCh = tm.Validate(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		if err != rememberme.ErrTokenInvalid {
-			t.Errorf("Revoked token should not validat: %v", err)
+	t.Run("Initial addition", func(t *testing.T) {
+		tokenCh, errCh := tm.Add(context.Background(), token)
+		select {
+		case err := <-errCh:
+			t.Errorf("Error saving token: %v", err)
+
+		case <-tokenCh:
 		}
 
-	case <-tokenCh:
-		t.Error("Validation should have failed for revoked token")
-	}
+		// token should validate at this point
+		tokenCh, errCh = tm.Validate(context.Background(), token)
+		select {
+		case err := <-errCh:
+			t.Errorf("Error validating token: %v", err)
+
+		case <-tokenCh:
+		}
+	})
+
+	t.Run("Deletion should succeed", func(t *testing.T) {
+		errCh := tm.Delete(context.Background(), token)
+		select {
+		case err := <-errCh:
+			if err != nil {
+				t.Errorf("Error deleting token: %v", err)
+			}
+		}
+	})
+
+	t.Run("Validation should fail on deleted token", func(t *testing.T) {
+		tokenCh, errCh := tm.Validate(context.Background(), token)
+		select {
+		case err := <-errCh:
+			if err != rememberme.ErrTokenInvalid {
+				t.Errorf("Revoked token should not validat: %v", err)
+			}
+
+		case <-tokenCh:
+			t.Error("Validation should have failed for revoked token")
+		}
+	})
 }
 
 func TestFirebaseTokenManager_Purge(t *testing.T) {
@@ -95,7 +140,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		Identifier: oldIdentifier1.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), oldToken1)
+	tokenCh, errCh := tm.Add(context.Background(), oldToken1)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -108,7 +153,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		Identifier: oldIdentifier2.String(),
 	}
 
-	tokenCh, errCh = tm.Save(context.Background(), oldToken2)
+	tokenCh, errCh = tm.Add(context.Background(), oldToken2)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -125,7 +170,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 		Identifier: newIdentifier.String(),
 	}
 
-	tokenCh, errCh = tm.Save(context.Background(), newToken)
+	tokenCh, errCh = tm.Add(context.Background(), newToken)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -302,7 +347,7 @@ func TestFirebaseTokenManager_Revoke(t *testing.T) {
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
+	tokenCh, errCh := tm.Add(context.Background(), newToken)
 	select {
 	case err := <-errCh:
 		t.Errorf("Error saving token: %v", err)
@@ -386,42 +431,6 @@ func TestFirebaseTokenManager_RevokeToken(t *testing.T) {
 	}
 }
 
-func TestFirebaseTokenManager_Save(t *testing.T) {
-	identifier := uuid.New()
-
-	newToken := rememberme.Token{
-		Username:   "test_user",
-		Identifier: identifier.String(),
-	}
-
-	tokenCh, errCh := tm.Save(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error saving token: %v", err)
-	case <-tokenCh:
-	}
-
-	// Once a token is saved, subsequent validation calls should succeed
-	tokenCh, errCh = tm.Validate(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error validating token: %v", err)
-
-	case <-tokenCh:
-	}
-
-	// Saving the same token again should now give me a ErrTokenDuplicate
-	tokenCh, errCh = tm.Save(context.Background(), newToken)
-	select {
-	case err := <-errCh:
-		if err != rememberme.ErrTokenDuplicate {
-			t.Errorf("Error saving token: %v", err)
-		}
-	case <-tokenCh:
-		t.Errorf("Saving the same token again should error out")
-	}
-}
-
 func TestFirebaseTokenManager_SaveToken(t *testing.T) {
 	identifier := uuid.New()
 
@@ -456,7 +465,7 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 		Identifier: identifier.String(),
 	}
 
-	tokenCh, errCh := tm.Save(context.Background(), token)
+	tokenCh, errCh := tm.Add(context.Background(), token)
 
 	select {
 	case err := <-errCh:

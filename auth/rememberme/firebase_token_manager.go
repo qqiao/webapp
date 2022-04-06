@@ -21,6 +21,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
 
+	"github.com/qqiao/webapp/datastore"
 	f "github.com/qqiao/webapp/firebase/firestore"
 )
 
@@ -60,20 +61,21 @@ func (m FirebaseTokenManager) Delete(ctx context.Context,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
-				Filters: []f.Filter{
-					{
-						Path:     "Username",
-						Operator: "==",
-						Value:    token.Username,
+			q := f.ApplyQuery(m.client.Collection(m.collectionName),
+				datastore.Query{
+					Filters: []datastore.Filter{
+						{
+							Path:     "Username",
+							Operator: "==",
+							Value:    token.Username,
+						},
+						{
+							Path:     "Identifier",
+							Operator: "==",
+							Value:    token.Identifier,
+						},
 					},
-					{
-						Path:     "Identifier",
-						Operator: "==",
-						Value:    token.Identifier,
-					},
-				},
-			})
+				})
 
 			iter := q.Documents(ctx)
 			defer iter.Stop()
@@ -114,20 +116,21 @@ func (m FirebaseTokenManager) Purge(ctx context.Context, username string,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
-				Filters: []f.Filter{
-					{
-						Path:     "Username",
-						Operator: "==",
-						Value:    username,
+			q := f.ApplyQuery(m.client.Collection(m.collectionName),
+				datastore.Query{
+					Filters: []datastore.Filter{
+						{
+							Path:     "Username",
+							Operator: "==",
+							Value:    username,
+						},
+						{
+							Path:     "LastUsed",
+							Operator: "<=",
+							Value:    cutoff.Unix(),
+						},
 					},
-					{
-						Path:     "LastUsed",
-						Operator: "<=",
-						Value:    cutoff.Unix(),
-					},
-				},
-			})
+				})
 
 			iter := q.Documents(ctx)
 			defer iter.Stop()
@@ -184,20 +187,21 @@ func (m FirebaseTokenManager) Revoke(ctx context.Context,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
-				Filters: []f.Filter{
-					{
-						Path:     "Username",
-						Operator: "==",
-						Value:    token.Username,
+			q := f.ApplyQuery(m.client.Collection(m.collectionName),
+				datastore.Query{
+					Filters: []datastore.Filter{
+						{
+							Path:     "Username",
+							Operator: "==",
+							Value:    token.Username,
+						},
+						{
+							Path:     "Identifier",
+							Operator: "==",
+							Value:    token.Identifier,
+						},
 					},
-					{
-						Path:     "Identifier",
-						Operator: "==",
-						Value:    token.Identifier,
-					},
-				},
-			})
+				})
 
 			iter := q.Documents(ctx)
 			defer iter.Stop()
@@ -219,6 +223,7 @@ func (m FirebaseTokenManager) Revoke(ctx context.Context,
 
 		}); err != nil {
 			errCh <- err
+			return
 		}
 		tokenCh <- &tok
 	}()
@@ -251,11 +256,11 @@ func (m FirebaseTokenManager) RevokeToken(ctx context.Context,
 	return errCh
 }
 
-// Save saves the token to the underlying datastore
+// Add adds the token to the underlying datastore
 //
 // This function will return ErrTokenDuplicate if the given Username
 // Identifier combination already exists in the datastore
-func (m FirebaseTokenManager) Save(ctx context.Context,
+func (m FirebaseTokenManager) Add(ctx context.Context,
 	token Token) (<-chan *Token, <-chan error) {
 	tokenCh := make(chan *Token)
 	errCh := make(chan error)
@@ -271,20 +276,21 @@ func (m FirebaseTokenManager) Save(ctx context.Context,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
-				Filters: []f.Filter{
-					{
-						Path:     "Username",
-						Operator: "==",
-						Value:    token.Username,
+			q := f.ApplyQuery(m.client.Collection(m.collectionName),
+				datastore.Query{
+					Filters: []datastore.Filter{
+						{
+							Path:     "Username",
+							Operator: "==",
+							Value:    token.Username,
+						},
+						{
+							Path:     "Identifier",
+							Operator: "==",
+							Value:    token.Identifier,
+						},
 					},
-					{
-						Path:     "Identifier",
-						Operator: "==",
-						Value:    token.Identifier,
-					},
-				},
-			})
+				})
 
 			iter := q.Documents(ctx)
 			defer iter.Stop()
@@ -302,8 +308,8 @@ func (m FirebaseTokenManager) Save(ctx context.Context,
 
 		}); err != nil {
 			errCh <- err
+			return
 		}
-
 		tokenCh <- &token
 	}()
 
@@ -315,7 +321,7 @@ func (m FirebaseTokenManager) Save(ctx context.Context,
 // Deprecated: please use the Save method instead
 func (m FirebaseTokenManager) SaveToken(ctx context.Context,
 	token Token) <-chan error {
-	t, e := m.Save(ctx, token)
+	t, e := m.Add(ctx, token)
 	errCh := make(chan error)
 
 	go func() {
@@ -357,25 +363,26 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			q := f.ApplyQuery(m.client.Collection(m.collectionName), f.Query{
-				Filters: []f.Filter{
-					{
-						Path:     "Username",
-						Operator: "==",
-						Value:    token.Username,
+			q := f.ApplyQuery(m.client.Collection(m.collectionName),
+				datastore.Query{
+					Filters: []datastore.Filter{
+						{
+							Path:     "Username",
+							Operator: "==",
+							Value:    token.Username,
+						},
+						{
+							Path:     "Identifier",
+							Operator: "==",
+							Value:    token.Identifier,
+						},
+						{
+							Path:     "Revoked",
+							Operator: "==",
+							Value:    false,
+						},
 					},
-					{
-						Path:     "Identifier",
-						Operator: "==",
-						Value:    token.Identifier,
-					},
-					{
-						Path:     "Revoked",
-						Operator: "==",
-						Value:    false,
-					},
-				},
-			})
+				})
 
 			iter := q.Documents(ctx)
 			defer iter.Stop()
@@ -401,7 +408,6 @@ func (m FirebaseTokenManager) Validate(ctx context.Context,
 			errCh <- err
 			return
 		}
-
 		tokenCh <- &tok
 	}()
 
