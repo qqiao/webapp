@@ -509,8 +509,6 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 
 	case newT := <-tokenCh:
 		if token.LastUsed >= newT.LastUsed {
-			t.Logf("Old last used: %d", token.LastUsed)
-			t.Logf("New last used: %d", newT.LastUsed)
 			t.Error("Last used should have been updated after validation")
 		}
 	}
