@@ -20,6 +20,9 @@ import (
 )
 
 // TokenManager manages all rememberme token related operations.
+//
+// Depending on how the tokens are stored and queried, there could be
+// multiple different implementations of a TokenManager.
 type TokenManager interface {
 	// Add adds the token to the underlying datastore
 	//

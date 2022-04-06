@@ -41,8 +41,8 @@ good practice for applications to periodically clean up unused tokens as a good
 security measure.
 
 The Purge method is designed for this purpose. The frequency of calling this
-function and the cut-off point from which older tokens are deleted are entirely
-determined by the application.
+function and the cutoff time for what is considered old tokens are entirely
+determined by the downstream application.
 
 Revocation
 

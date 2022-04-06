@@ -27,7 +27,10 @@ var (
 	ErrUserNotFound  = errors.New("user not found")
 )
 
-// Manager is responsible for all user related operations
+// Manager is responsible for all user related operations.
+//
+// Depending on how users are stored and queried, there could be multiple
+// implementations of the Manager interface.
 type Manager interface {
 	// Add adds a user to the database of users.
 	//
