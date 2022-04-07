@@ -19,10 +19,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"google.golang.org/api/iterator"
-
 	"github.com/qqiao/webapp/datastore"
 	f "github.com/qqiao/webapp/firebase/firestore"
+	"google.golang.org/api/iterator"
 )
 
 // FirebaseTokenManager manages datastore operations regarding rememberme tokens.

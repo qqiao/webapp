@@ -14,7 +14,7 @@
 
 /*
 
-Package datastore provides abstraction to datastore operations
+Package datastore provides abstraction to datastore operations.
 
 */
 package datastore
