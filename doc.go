@@ -14,8 +14,8 @@
 
 /*
 
-Package webapp provides a set of convenient functions for Go based web
-applications.
+Package webapp provides reusable components and helper functions for common use
+cases for Go web applications.
 
 */
 package webapp

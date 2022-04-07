@@ -1,5 +1,6 @@
 # webapp
-Helper functions for Go based web applications.
+Reusable components and helper functions for common use cases for Go based web
+applications.
 
 ### Installation
 
