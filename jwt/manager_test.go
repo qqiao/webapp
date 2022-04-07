@@ -27,7 +27,7 @@ import (
 
 func ExampleNewPS512Manager() {
 	// In real program usage, the private and public key pair has to be real
-	// and should be dummy ones like this
+	// and should not be dummy ones like this
 	privateKey := &rsa.PrivateKey{}
 	publicKey := &rsa.PublicKey{}
 
