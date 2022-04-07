@@ -20,7 +20,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/qqiao/webapp/datastore"
-	f "github.com/qqiao/webapp/firebase/firestore"
+	f "github.com/qqiao/webapp/datastore/firestore"
 	"google.golang.org/api/iterator"
 )
 
