@@ -14,29 +14,36 @@
 
 package datastore
 
-// Direction is the sorting direction
+// Direction represents the sorting direction.
 type Direction string
 
-// Ordering directions
+// Possible ordering directions.
 const (
 	DirectionASC  Direction = "ASC"
 	DirectionDESC Direction = "DESC"
 )
 
 // Query represents the abstraction of any datastore query.
+//
+// For a query with multiple Filters,they are treated as a set of criterion
+// joined with AND condition behind the scenes.
+//
+// For queries needing to use the OR condition, it is more efficient to split
+// the query into multiple separate ones, run them separately in parallel and
+// combine the results afterwards.
 type Query struct {
 	Limit   int      `json:"limit"`
 	Orders  []Order  `json:"orders"`
 	Filters []Filter `json:"filters"`
 }
 
-// Order represents ordering criterion.
+// Order represents an ordering criteria.
 type Order struct {
 	Path      string    `json:"path"`
 	Direction Direction `json:"direction"`
 }
 
-// Filter represents filtering criterion.
+// Filter represents a filtering criteria.
 type Filter struct {
 	Path     string      `json:"path"`
 	Operator string      `json:"operator"`
