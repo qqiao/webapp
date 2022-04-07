@@ -27,8 +27,8 @@ type PS512Manager struct {
 
 // NewPS512Manager creates a new JWT client that signs and validates JWT tokens
 // using the PS512 algorithm.
-func NewPS512Manager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) PS512Manager {
-	return PS512Manager{
+func NewPS512Manager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) *PS512Manager {
+	return &PS512Manager{
 		parseKey:   publicKey,
 		signingKey: privateKey,
 
