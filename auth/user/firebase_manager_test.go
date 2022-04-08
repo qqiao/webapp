@@ -43,10 +43,7 @@ func TestMain(m *testing.M) {
 
 func TestFirebaseManager_Add(t *testing.T) {
 	const username = "test_add_user"
-	usr := user.User{
-		Username: username,
-		Password: "123",
-	}
+	usr := user.NewUser().WithUsername(username).WithPassword("123")
 
 	// First time adding the user should succeed
 	userCh, errCh := m.Add(context.Background(), usr)
@@ -101,10 +98,7 @@ func TestFirebaseManager_Add(t *testing.T) {
 
 func TestFirebaseManager_Find(t *testing.T) {
 	const username = "test_find"
-	usr := user.User{
-		Username: username,
-		Password: "123",
-	}
+	usr := user.NewUser().WithUsername(username).WithPassword("123")
 
 	// First time adding the user should succeed
 	userCh, errCh := m.Add(context.Background(), usr)
@@ -200,11 +194,8 @@ func TestFirebaseManager_Find(t *testing.T) {
 
 func TestFirebaseManager_Update(t *testing.T) {
 	const username = "test_update"
-	usr := user.User{
-		Username:  username,
-		Password:  "123",
-		Suspended: false,
-	}
+	usr := user.NewUser().WithUsername(username).WithPassword("123").
+		WithSuspended(false)
 
 	// First time adding the user should succeed
 	userCh, errCh := m.Add(context.Background(), usr)

@@ -45,10 +45,11 @@ func NewFirebaseManager(client *firestore.Client,
 
 // Add adds a user to the database of users.
 //
-// Please note that Add will return ErrUserDuplicate if the user already exists
-// in the datastore.
+// Please note that a user is considered a duplicate if any of the following
+// already exist on a different user: Email, PhoneNumber and Username.The Add
+// method will return ErrUserDuplicate in this case.
 func (m FirebaseManager) Add(ctx context.Context,
-	usr User) (<-chan *User, <-chan error) {
+	usr *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
 
@@ -73,7 +74,7 @@ func (m FirebaseManager) Add(ctx context.Context,
 			errCh <- err
 			return
 		}
-		userCh <- &usr
+		userCh <- usr
 	}()
 
 	return userCh, errCh
@@ -134,7 +135,7 @@ func (m FirebaseManager) Find(ctx context.Context,
 // Update will return ErrUserNotFound if the user cannot be found in the
 // underlying datastore
 func (m FirebaseManager) Update(ctx context.Context,
-	user User) (<-chan *User, <-chan error) {
+	user *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
 
@@ -155,7 +156,7 @@ func (m FirebaseManager) Update(ctx context.Context,
 			errCh <- err
 			return
 		}
-		userCh <- &user
+		userCh <- user
 	}()
 
 	return userCh, errCh

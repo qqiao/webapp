@@ -14,9 +14,67 @@
 
 package user
 
-// User represents a user to be stored in the datastore.
+// User represents a user record stored in the underlying datastore.
 type User struct {
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	Suspended bool   `json:"suspended"`
+	DisplayName string `json:"displayName,omitempty"`
+	Email       string `json:"email,omitempty"`
+	Password    string `json:"password,omitempty"`
+	PhoneNumber string `json:"phoneNumber,omitempty"`
+	PhotoURL    string `json:"photoUrl,omitempty"`
+	Suspended   bool   `json:"-"`
+	UID         string `json:"uid,omitempty" firestore:"-"`
+	Username    string `json:"username,omitempty"`
+}
+
+// NewUser returns a new User instance with all fields being blank.
+func NewUser() *User {
+	return &User{}
+}
+
+// WithDisplayName sets the DisplayName of the user.
+func (u *User) WithDisplayName(displayName string) *User {
+	u.DisplayName = displayName
+	return u
+}
+
+// WithEmail sets the Email of the user.
+func (u *User) WithEmail(email string) *User {
+	u.Email = email
+	return u
+}
+
+// WithPassword sets the Password of the user.
+func (u *User) WithPassword(password string) *User {
+	u.Password = password
+	return u
+}
+
+// WithPhoneNumber sets the PhoneNumber of the user.
+func (u *User) WithPhoneNumber(phoneNumber string) *User {
+	u.PhoneNumber = phoneNumber
+	return u
+}
+
+// WithPhotoURL sets the PhotoURL of the user.
+func (u *User) WithPhotoURL(photoURL string) *User {
+	u.PhotoURL = photoURL
+	return u
+}
+
+// WithSuspended sets the Suspended of the user.
+func (u *User) WithSuspended(suspended bool) *User {
+	u.Suspended = suspended
+	return u
+}
+
+// WithUID sets the UID of the user.
+func (u *User) WithUID(uid string) *User {
+	u.UID = uid
+	return u
+}
+
+// WithUsername sets the Username of the user.
+func (u *User) WithUsername(username string) *User {
+	u.Username = username
+	return u
 }
