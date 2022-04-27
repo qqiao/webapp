@@ -13,7 +13,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/google/uuid v1.3.0
 	google.golang.org/api v0.75.0
-	google.golang.org/grpc v1.45.0
+	google.golang.org/grpc v1.46.0
 )
 
 require github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
