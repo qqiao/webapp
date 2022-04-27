@@ -25,7 +25,7 @@ import (
 	"github.com/qqiao/webapp/datastore"
 )
 
-var m user.FirebaseManager
+var m *user.FirebaseManager
 
 func setUp() {
 	client, err := firestore.NewClient(context.Background(), "test-project")

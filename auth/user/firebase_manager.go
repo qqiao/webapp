@@ -36,8 +36,8 @@ type FirebaseManager struct {
 // NewFirebaseManager creates a new UserManager with the given firestore client
 // and collection name.
 func NewFirebaseManager(client *firestore.Client,
-	collectionName string) FirebaseManager {
-	return FirebaseManager{
+	collectionName string) *FirebaseManager {
+	return &FirebaseManager{
 		client:         client,
 		collectionName: collectionName,
 	}
@@ -48,7 +48,7 @@ func NewFirebaseManager(client *firestore.Client,
 // Please note that a user is considered a duplicate if any of the following
 // already exist on a different user: Email, PhoneNumber and Username.The Add
 // method will return ErrUserDuplicate in this case.
-func (m FirebaseManager) Add(ctx context.Context,
+func (m *FirebaseManager) Add(ctx context.Context,
 	usr *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
@@ -80,8 +80,41 @@ func (m FirebaseManager) Add(ctx context.Context,
 	return userCh, errCh
 }
 
+func (m *FirebaseManager) find(ctx context.Context, t *firestore.Transaction,
+	query datastore.Query) (<-chan *User, <-chan error) {
+	results := make(chan *User)
+	errCh := make(chan error)
+
+	go func() {
+		defer close(results)
+		defer close(errCh)
+		q := f.ApplyQuery(m.client.Collection(m.collectionName), query)
+
+		iter := t.Documents(q)
+		defer iter.Stop()
+
+		for {
+			ref, err := iter.Next()
+
+			if err == iterator.Done {
+				return
+			}
+
+			var usr User
+			if err = ref.DataTo(&usr); err != nil {
+				errCh <- err
+				return
+			}
+
+			results <- &usr
+		}
+	}()
+
+	return results, errCh
+}
+
 // Find finds the user based on the given query criterion.
-func (m FirebaseManager) Find(ctx context.Context,
+func (m *FirebaseManager) Find(ctx context.Context,
 	query datastore.Query) (<-chan (<-chan *User), <-chan error) {
 
 	resultsCh := make(chan (<-chan *User))
@@ -134,7 +167,7 @@ func (m FirebaseManager) Find(ctx context.Context,
 //
 // Update will return ErrUserNotFound if the user cannot be found in the
 // underlying datastore
-func (m FirebaseManager) Update(ctx context.Context,
+func (m *FirebaseManager) Update(ctx context.Context,
 	user *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
