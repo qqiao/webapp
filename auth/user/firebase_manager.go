@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/firestore"
+	"github.com/qqiao/pipeline/v2"
 	"github.com/qqiao/webapp/datastore"
 	f "github.com/qqiao/webapp/datastore/firestore"
 	"google.golang.org/api/iterator"
@@ -80,37 +81,55 @@ func (m *FirebaseManager) Add(ctx context.Context,
 	return userCh, errCh
 }
 
-func (m *FirebaseManager) find(ctx context.Context, t *firestore.Transaction,
-	query datastore.Query) (<-chan *User, <-chan error) {
-	results := make(chan *User)
-	errCh := make(chan error)
+func (m *FirebaseManager) createStreamWorker(t *firestore.Transaction) pipeline.
+	StreamWorker[datastore.Query, *User] {
+	return func(ctx context.Context, in pipeline.Producer[datastore.Query]) (
+		<-chan *User,
+		<-chan error) {
+		results := make(chan *User)
+		errCh := make(chan error)
 
-	go func() {
-		defer close(results)
-		defer close(errCh)
-		q := f.ApplyQuery(m.client.Collection(m.collectionName), query)
+		go func() {
+			defer close(results)
+			defer close(errCh)
 
-		iter := t.Documents(q)
-		defer iter.Stop()
+			_ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			for {
+				select {
+				case query := <-in:
+					func() {
+						q := f.ApplyQuery(m.client.Collection(m.
+							collectionName), query)
 
-		for {
-			ref, err := iter.Next()
+						iter := t.Documents(q)
+						defer iter.Stop()
 
-			if err == iterator.Done {
-				return
+						for {
+							ref, err := iter.Next()
+
+							if err == iterator.Done {
+								return
+							}
+
+							var usr User
+							if err = ref.DataTo(&usr); err != nil {
+								errCh <- err
+								cancel()
+								return
+							}
+
+							results <- &usr
+						}
+					}()
+				case <-_ctx.Done():
+					return
+				}
 			}
+		}()
 
-			var usr User
-			if err = ref.DataTo(&usr); err != nil {
-				errCh <- err
-				return
-			}
-
-			results <- &usr
-		}
-	}()
-
-	return results, errCh
+		return results, errCh
+	}
 }
 
 // Find finds the user based on the given query criterion.
