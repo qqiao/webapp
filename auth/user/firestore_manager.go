@@ -28,23 +28,23 @@ import (
 
 const defaultBatchSize = 10
 
-// FirebaseManager is responsible for all user related operations
-type FirebaseManager struct {
+// FirestoreManager is responsible for all user related operations
+type FirestoreManager struct {
 	client         *firestore.Client
 	collectionName string
 }
 
-// NewFirebaseManager creates a new UserManager with the given firestore client
+// NewFirestoreManager creates a new UserManager with the given firestore client
 // and collection name.
-func NewFirebaseManager(client *firestore.Client,
-	collectionName string) *FirebaseManager {
-	return &FirebaseManager{
+func NewFirestoreManager(client *firestore.Client,
+	collectionName string) *FirestoreManager {
+	return &FirestoreManager{
 		client:         client,
 		collectionName: collectionName,
 	}
 }
 
-func (m *FirebaseManager) createStreamWorker(t *firestore.Transaction) pipeline.
+func (m *FirestoreManager) createStreamWorker(t *firestore.Transaction) pipeline.
 	StreamWorker[any, any] {
 	return func(ctx context.Context, in pipeline.Producer[any]) (
 		<-chan any,
@@ -96,7 +96,7 @@ func (m *FirebaseManager) createStreamWorker(t *firestore.Transaction) pipeline.
 	}
 }
 
-func (m *FirebaseManager) find(ctx context.Context,
+func (m *FirestoreManager) find(ctx context.Context,
 	t *firestore.Transaction, users chan<- *User, errs chan<- error,
 	queries ...datastore.Query) {
 	_ctx, cancel := context.WithCancel(ctx)
@@ -143,7 +143,7 @@ func (m *FirebaseManager) find(ctx context.Context,
 // Please note that a user is considered a duplicate if any of the following
 // already exist on a different user: Email, PhoneNumber and Username.The Add
 // method will return ErrUserDuplicate in this case.
-func (m *FirebaseManager) Add(ctx context.Context,
+func (m *FirestoreManager) Add(ctx context.Context,
 	usr *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
@@ -176,7 +176,7 @@ func (m *FirebaseManager) Add(ctx context.Context,
 }
 
 // Find finds the user based on the given query criterion.
-func (m *FirebaseManager) Find(ctx context.Context,
+func (m *FirestoreManager) Find(ctx context.Context,
 	query datastore.Query) (<-chan (<-chan *User), <-chan error) {
 
 	resultsCh := make(chan (<-chan *User))
@@ -229,7 +229,7 @@ func (m *FirebaseManager) Find(ctx context.Context,
 //
 // Update will return ErrUserNotFound if the user cannot be found in the
 // underlying datastore
-func (m *FirebaseManager) Update(ctx context.Context,
+func (m *FirestoreManager) Update(ctx context.Context,
 	user *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)

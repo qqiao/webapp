@@ -25,7 +25,7 @@ import (
 	"github.com/qqiao/webapp/datastore"
 )
 
-var m *user.FirebaseManager
+var m *user.FirestoreManager
 
 func setUp() {
 	client, err := firestore.NewClient(context.Background(), "test-project")
@@ -33,7 +33,7 @@ func setUp() {
 		log.Fatalf("Unable to initialize firebase client. Error: %v", err)
 	}
 
-	m = user.NewFirebaseManager(client, "TestUserCollection")
+	m = user.NewFirestoreManager(client, "TestUserCollection")
 }
 
 func TestMain(m *testing.M) {

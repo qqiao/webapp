@@ -26,7 +26,7 @@ import (
 	"github.com/qqiao/webapp/auth/rememberme"
 )
 
-var tm rememberme.FirebaseTokenManager
+var tm *rememberme.FirestoreTokenManager
 
 func setUp() {
 	client, err := firestore.NewClient(context.Background(), "test-project")
@@ -34,7 +34,7 @@ func setUp() {
 		log.Fatalf("Unable to initialize firebase client. Error: %v", err)
 	}
 
-	tm = rememberme.NewFirebaseTokenManager(client, "TestTokenCollection")
+	tm = rememberme.NewFirestoreTokenManager(client, "TestTokenCollection")
 }
 
 func TestMain(m *testing.M) {
@@ -226,7 +226,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	}
 
 	// after purging non-existent tokens,
-	// the ones that do fail should still faile,
+	// the ones that do fail should still fail,
 	// and ones that do work should still work'
 
 	// oldToken should now have been purged and validation should fail
@@ -347,7 +347,7 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	// Validation should suceed, and last used should get updated
+	// Validation should succeed, and last used should get updated
 	tokenCh, errCh = tm.Validate(context.Background(), rememberme.Token{
 		Username:   "test_user",
 		Identifier: identifier,
