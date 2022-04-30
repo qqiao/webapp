@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestFirebaseManager_Add(t *testing.T) {
+func TestFirestoreManager_Add(t *testing.T) {
 	const username = "test_add_user"
 	usr := user.NewUser().WithUsername(username).WithPassword("123")
 
@@ -96,7 +96,7 @@ func TestFirebaseManager_Add(t *testing.T) {
 	}
 }
 
-func TestFirebaseManager_Find(t *testing.T) {
+func TestFirestoreManager_Find(t *testing.T) {
 	const username = "test_find"
 	usr := user.NewUser().WithUsername(username).WithPassword("123")
 
@@ -192,7 +192,7 @@ func TestFirebaseManager_Find(t *testing.T) {
 	}
 }
 
-func TestFirebaseManager_Update(t *testing.T) {
+func TestFirestoreManager_Update(t *testing.T) {
 	const username = "test_update"
 	usr := user.NewUser().WithUsername(username).WithPassword("123").
 		WithSuspended(false)

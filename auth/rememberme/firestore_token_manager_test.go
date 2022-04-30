@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestFirebaseTokenManager_Add(t *testing.T) {
+func TestFirestoreTokenManager_Add(t *testing.T) {
 	identifier := uuid.NewString()
 
 	token := rememberme.Token{
@@ -83,7 +83,7 @@ func TestFirebaseTokenManager_Add(t *testing.T) {
 		})
 }
 
-func TestFirebaseTokenManager_Delete(t *testing.T) {
+func TestFirestoreTokenManager_Delete(t *testing.T) {
 	identifier := uuid.NewString()
 	token := rememberme.Token{
 		Username:   "test_user",
@@ -133,7 +133,7 @@ func TestFirebaseTokenManager_Delete(t *testing.T) {
 	})
 }
 
-func TestFirebaseTokenManager_Purge(t *testing.T) {
+func TestFirestoreTokenManager_Purge(t *testing.T) {
 	oldIdentifier1 := uuid.NewString()
 	oldToken1 := rememberme.Token{
 		Username:   "test_user",
@@ -250,7 +250,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	}
 }
 
-func TestFirebaseTokenManager_Revoke(t *testing.T) {
+func TestFirestoreTokenManager_Revoke(t *testing.T) {
 	identifier := uuid.NewString()
 
 	newToken := rememberme.Token{
@@ -299,7 +299,7 @@ func TestFirebaseTokenManager_Revoke(t *testing.T) {
 	}
 }
 
-func TestFirebaseTokenManager_Validate(t *testing.T) {
+func TestFirestoreTokenManager_Validate(t *testing.T) {
 	identifier := uuid.NewString()
 
 	token := rememberme.Token{
