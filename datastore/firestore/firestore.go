@@ -54,6 +54,21 @@ func ApplyQuery(col *firestore.CollectionRef,
 
 // Or takes a set of datastore queries, and run them in the same transaction,
 // with OR condition connecting the queries.
+//
+// Due to the fact that firestore does not support OR query, we have to
+// simulate an OR query with multiple simultaneous queries in parallel.
+//
+// There a few limitations users should be aware of with the current
+// implementation:
+//     1. Ordering will not function. Since queries are run in parallel,
+//     to prevent any potential data race conditions, the results of the
+//     queries are simply streamed, with no consideration of ordering.
+//     2. Limit on the overall result set will not function. Given that queries
+//     are run in parallel and ordering will not function, there is currently
+//     no way for the function ot support limiting the results.
+//
+// As a workaround, users should take the total results, apply any sorting,
+// further filtering and limiting of the results in their own code.
 func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 	t *firestore.Transaction, col *firestore.CollectionRef,
 	queries ...datastore.Query) (<-chan O, <-chan error) {
@@ -74,7 +89,7 @@ func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 		}()
 
 		sw := func(ctx context.Context, producer pipeline.Producer[firestore.
-			Query]) (<-chan O, <-chan error) {
+		Query]) (<-chan O, <-chan error) {
 			out := make(chan O)
 			err := make(chan error)
 
