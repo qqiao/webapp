@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/qqiao/webapp/jwt"
+	"github.com/qqiao/webapp/v2/jwt"
 )
 
 func ExampleClaims_WithDat() {

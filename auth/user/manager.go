@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/qqiao/webapp/datastore"
+	"github.com/qqiao/webapp/v2/datastore"
 )
 
 // Errors.

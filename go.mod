@@ -1,19 +1,13 @@
-module github.com/qqiao/webapp
+module github.com/qqiao/webapp/v2
 
 go 1.18
-
-retract (
-	v1.8.1
-	v1.8.0
-	v1.4.0
-)
 
 require (
 	cloud.google.com/go/firestore v1.6.1
 	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/google/uuid v1.3.0
 	github.com/qqiao/pipeline/v2 v2.1.1
-	google.golang.org/api v0.76.0
+	google.golang.org/api v0.77.0
 	google.golang.org/grpc v1.46.0
 )
 
@@ -27,10 +21,10 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
-	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
+	golang.org/x/sys v0.0.0-20220429233432-b5fbb4746d32 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220426171045-31bebdecfb46 // indirect
+	google.golang.org/genproto v0.0.0-20220429170224-98d788798c3e // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )

@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"cloud.google.com/go/firestore"
-	"github.com/qqiao/webapp/auth/user"
-	"github.com/qqiao/webapp/datastore"
+	"github.com/qqiao/webapp/v2/auth/user"
+	"github.com/qqiao/webapp/v2/datastore"
 )
 
 var m *user.FirestoreManager

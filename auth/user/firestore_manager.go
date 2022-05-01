@@ -19,8 +19,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/qqiao/pipeline/v2"
-	"github.com/qqiao/webapp/datastore"
-	f "github.com/qqiao/webapp/datastore/firestore"
+	"github.com/qqiao/webapp/v2/datastore"
+	f "github.com/qqiao/webapp/v2/datastore/firestore"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

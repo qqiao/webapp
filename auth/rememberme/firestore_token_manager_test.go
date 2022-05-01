@@ -23,7 +23,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/google/uuid"
-	"github.com/qqiao/webapp/auth/rememberme"
+	"github.com/qqiao/webapp/v2/auth/rememberme"
 )
 
 var tm *rememberme.FirestoreTokenManager
