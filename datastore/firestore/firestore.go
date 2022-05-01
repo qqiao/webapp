@@ -117,6 +117,10 @@ func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 							var object O
 							var toLoad interface{}
 
+							// We need to deal with the case where O is a
+							// pointer type. In such case,
+							// we have to use reflection to instantiate a real
+							// instance of the object, and use its address
 							rv := reflect.ValueOf(object)
 							if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
 								rv = rv.Elem()

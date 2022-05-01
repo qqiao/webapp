@@ -18,7 +18,6 @@ import (
 	"context"
 
 	"cloud.google.com/go/firestore"
-	"github.com/qqiao/pipeline/v2"
 	"github.com/qqiao/webapp/v2/datastore"
 	f "github.com/qqiao/webapp/v2/datastore/firestore"
 	"google.golang.org/api/iterator"
@@ -34,8 +33,8 @@ type FirestoreManager struct {
 	collectionName string
 }
 
-// NewFirestoreManager creates a new UserManager with the given firestore client
-// and collection name.
+// NewFirestoreManager creates a new UserManager with the given firestore
+// client and collection name.
 func NewFirestoreManager(client *firestore.Client,
 	collectionName string) *FirestoreManager {
 	return &FirestoreManager{
@@ -44,98 +43,9 @@ func NewFirestoreManager(client *firestore.Client,
 	}
 }
 
-func (m *FirestoreManager) createStreamWorker(t *firestore.Transaction) pipeline.
-	StreamWorker[any, any] {
-	return func(ctx context.Context, in pipeline.Producer[any]) (
-		<-chan any,
-		<-chan error) {
-		results := make(chan any)
-		errCh := make(chan error)
-
-		go func() {
-			defer close(results)
-			defer close(errCh)
-
-			_ctx, cancel := context.WithCancel(ctx)
-			defer cancel()
-			for {
-				select {
-				case query := <-in:
-					q := query.(datastore.Query)
-					func() {
-						q := f.ApplyQuery(m.client.Collection(m.
-							collectionName), q)
-
-						iter := t.Documents(q)
-						defer iter.Stop()
-
-						for {
-							ref, err := iter.Next()
-
-							if err == iterator.Done {
-								return
-							}
-
-							var usr User
-							if err = ref.DataTo(&usr); err != nil {
-								errCh <- err
-								cancel()
-								return
-							}
-
-							results <- &usr
-						}
-					}()
-				case <-_ctx.Done():
-					return
-				}
-			}
-		}()
-
-		return results, errCh
-	}
-}
-
 func (m *FirestoreManager) find(ctx context.Context,
-	t *firestore.Transaction, users chan<- *User, errs chan<- error,
-	queries ...datastore.Query) {
-	_ctx, cancel := context.WithCancel(ctx)
-	producer := make(chan datastore.Query)
-	go func() {
-		for _, query := range queries {
-			producer <- query
-		}
-	}()
+	t *firestore.Transaction, queries ...datastore.Query) {
 
-	p := pipeline.NewPipelineWithProducer[datastore.Query, *User](producer)
-	if _, err := p.AddStageStreamWorker(5, 5,
-		m.createStreamWorker(t)); err != nil {
-		errs <- err
-		cancel()
-		return
-	}
-
-	out, err := p.Produces()
-	if err != nil {
-		errs <- err
-		cancel()
-		return
-	}
-
-	go func() {
-		_errCh := p.Start(_ctx)
-		for {
-			select {
-			case e := <-_errCh:
-				errs <- e
-				cancel()
-			case u := <-out:
-				users <- u
-			case <-_ctx.Done():
-				return
-			}
-		}
-	}()
 }
 
 // Add adds a user to the database of users.
@@ -143,8 +53,8 @@ func (m *FirestoreManager) find(ctx context.Context,
 // Please note that a user is considered a duplicate if any of the following
 // already exist on a different user: Email, PhoneNumber and Username.The Add
 // method will return ErrUserDuplicate in this case.
-func (m *FirestoreManager) Add(ctx context.Context,
-	usr *User) (<-chan *User, <-chan error) {
+func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
+	<-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
 
