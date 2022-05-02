@@ -115,7 +115,7 @@ func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 							}
 
 							var object O
-							var toLoad interface{}
+							var toLoad any
 
 							// We need to deal with the case where O is a
 							// pointer type. In such case,
