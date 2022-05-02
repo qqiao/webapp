@@ -12,7 +12,7 @@ require (
 	cloud.google.com/go/firestore v1.6.1
 	github.com/golang-jwt/jwt/v4 v4.4.1
 	github.com/google/uuid v1.3.0
-	google.golang.org/api v0.76.0
+	google.golang.org/api v0.77.0
 	google.golang.org/grpc v1.46.0
 )
 
