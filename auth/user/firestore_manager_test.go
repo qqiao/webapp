@@ -45,55 +45,61 @@ func TestFirestoreManager_Add(t *testing.T) {
 	const username = "test_add_user"
 	usr := user.NewUser().WithUsername(username).WithPassword("123")
 
-	// First time adding the user should succeed
-	userCh, errCh := m.Add(context.Background(), usr)
-	select {
-	case err := <-errCh:
-		t.Errorf("Error adding user: %v", err)
-	case <-userCh:
-	}
-
-	// Adding the same user again should result in ErrUserDuplicate
-	userCh, errCh = m.Add(context.Background(), usr)
-	select {
-	case err := <-errCh:
-		if err != user.ErrUserDuplicate {
-			t.Errorf("Expecting ErrUserDuplicate, got: %v", err)
+	t.Run("Initial Add should succeed", func(t *testing.T) {
+		userCh, errCh := m.Add(context.Background(), usr)
+		select {
+		case err := <-errCh:
+			t.Errorf("Error adding user: %v", err)
+		case u := <-userCh:
+			if u.UID == "" {
+				t.Error("Newly added user should have a generated UID")
+			}
 		}
-	case <-userCh:
-		t.Error("Adding the same user again should result in ErrUserDuplicate")
-	}
-
-	// We should be able to retrieve the user
-	foundCh, errCh := m.Find(context.Background(), datastore.Query{
-		Filters: []datastore.Filter{
-			{
-				Path:     "Username",
-				Operator: "==",
-				Value:    username,
-			},
-			{
-				Path:     "Password",
-				Operator: "==",
-				Value:    "123",
-			},
-		},
 	})
-	select {
-	case err := <-errCh:
-		if err != nil {
-			t.Errorf("Error when finding user: %v", err)
-		}
-	case u := <-foundCh:
-		count := 0
 
-		for range u {
-			count++
+	t.Run("Adding again should get ErrUserDuplicate", func(t *testing.T) {
+		userCh, errCh := m.Add(context.Background(), usr)
+		select {
+		case err := <-errCh:
+			if err != user.ErrUserDuplicate {
+				t.Errorf("Expecting ErrUserDuplicate, got: %v", err)
+			}
+		case <-userCh:
+			t.Error("Adding the same user again should result in ErrUserDuplicate")
 		}
-		if count > 1 {
-			t.Errorf("Should have only found 1 user, got: %d", count)
+	})
+
+	t.Run("Added users should be retrievable", func(t *testing.T) {
+		foundCh, errCh := m.Find(context.Background(), datastore.Query{
+			Filters: []datastore.Filter{
+				{
+					Path:     "Username",
+					Operator: "==",
+					Value:    username,
+				},
+				{
+					Path:     "Password",
+					Operator: "==",
+					Value:    "123",
+				},
+			},
+		})
+		select {
+		case err := <-errCh:
+			if err != nil {
+				t.Errorf("Error when finding user: %v", err)
+			}
+		case u := <-foundCh:
+			count := 0
+
+			for range u {
+				count++
+			}
+			if count > 1 {
+				t.Errorf("Should have only found 1 user, got: %d", count)
+			}
 		}
-	}
+	})
 }
 
 func TestFirestoreManager_Find(t *testing.T) {

@@ -43,10 +43,11 @@ func NewFirestoreManager(client *firestore.Client,
 	}
 }
 
-func (m *FirestoreManager) find(ctx context.Context,
-	t *firestore.Transaction, queries ...datastore.Query) {
-
-}
+// func (m *FirestoreManager) find(ctx context.Context,
+// 	t *firestore.Transaction, queries ...datastore.Query) {
+// 	col := m.client.Collection(m.collectionName)
+// 	usrs, errs := f.Or[*User](ctx, 5, 10, t, col, queries...)
+// }
 
 // Add adds a user to the database of users.
 //
@@ -64,16 +65,57 @@ func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			ref := m.client.Collection(m.collectionName).Doc(usr.Username)
-			_, err := t.Get(ref)
-			if err == nil {
-				return ErrUserDuplicate
+			ctx, cancel := context.WithCancel(ctx)
+			col := m.client.Collection(m.collectionName)
+
+			queries := make([]datastore.Query, 0)
+			if usr.Username != "" {
+				queries = append(queries, datastore.Query{
+					Filters: []datastore.Filter{{
+						Path:     "Username",
+						Operator: "==",
+						Value:    usr.Username,
+					}},
+				})
+			}
+			if usr.Email != "" {
+				queries = append(queries, datastore.Query{
+					Filters: []datastore.Filter{{
+						Path:     "Email",
+						Operator: "==",
+						Value:    usr.Email,
+					}},
+				})
+			}
+			if usr.PhoneNumber != "" {
+				queries = append(queries, datastore.Query{
+					Filters: []datastore.Filter{{
+						Path:     "PhoneNumber",
+						Operator: "==",
+						Value:    usr.PhoneNumber,
+					}},
+				})
 			}
 
-			if err != nil && status.Code(err) != codes.NotFound {
-				return err
+			found, errs := f.Or[*User](ctx, 5, 5, t, col, queries...)
+			for cont := true; cont; {
+				select {
+				case u, ok := <-found:
+					if ok && u != nil {
+						cancel()
+						return ErrUserDuplicate
+					}
+					cont = false
+				case er, ok := <-errs:
+					if ok && er != nil {
+						cancel()
+						return er
+					}
+				}
 			}
 
+			ref := col.NewDoc()
+			usr.UID = ref.ID
 			return t.Set(ref, usr)
 		}); err != nil {
 			errCh <- err
@@ -150,10 +192,13 @@ func (m *FirestoreManager) Update(ctx context.Context,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			ref := m.client.Collection(m.collectionName).Doc(user.Username)
+			ref := m.client.Collection(m.collectionName).Doc(user.UID)
 			_, err := t.Get(ref)
-			if err != nil && status.Code(err) != codes.NotFound {
-				return ErrUserNotFound
+			if err != nil {
+				if status.Code(err) == codes.NotFound {
+					return ErrUserNotFound
+				}
+				return err
 			}
 
 			return t.Set(ref, user)

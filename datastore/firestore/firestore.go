@@ -89,7 +89,7 @@ func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 		}()
 
 		sw := func(ctx context.Context, producer pipeline.Producer[firestore.
-		Query]) (<-chan O, <-chan error) {
+			Query]) (<-chan O, <-chan error) {
 			out := make(chan O)
 			err := make(chan error)
 
@@ -123,9 +123,10 @@ func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 							// instance of the object, and use its address
 							rv := reflect.ValueOf(object)
 							if rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
-								rv = rv.Elem()
-								object = interface{}(reflect.New(rv.Type())).(O)
-								toLoad = object
+								t := reflect.TypeOf(object).Elem()
+								toLoad = reflect.Indirect(reflect.New(t)).
+									Addr().Interface()
+								object = toLoad.(O)
 							} else {
 								toLoad = &object
 							}
