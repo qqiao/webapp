@@ -27,16 +27,17 @@ var (
 	ErrUserNotFound  = errors.New("user not found")
 )
 
-// Manager is responsible for all user related operations.
+// Manager is responsible for all user related operations. This interface
+// defines common operations for managing user records.
 //
 // Depending on how users are stored and queried, there could be multiple
 // implementations of the Manager interface.
 type Manager interface {
 	// Add adds a user to the database of users.
 	//
-	// Please note that a user is considered a duplicate if any of the following
-	// already exist on a different user: Email, PhoneNumber and Username.The Add
-	// method will return ErrUserDuplicate in this case.
+	// Please note that a user is considered a duplicate if any of the
+	// following already exist on a different user: Email, PhoneNumber, and
+	// Username. The Add method will return ErrUserDuplicate in this case.
 	Add(ctx context.Context, user *User) (<-chan *User, <-chan error)
 
 	// Find finds the user based on the given query criterion.
