@@ -12,27 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package jwt_test
+package user_test
 
 import (
-	"fmt"
-	"time"
+	"context"
+	"log"
 
-	"github.com/qqiao/webapp/v2/jwt"
+	"cloud.google.com/go/firestore"
+	"github.com/qqiao/webapp/v2/auth/user"
 )
 
-func ExampleClaims_WithDat() {
-	claims := jwt.NewClaims().WithDat("123")
+func init() {
+	client, err := firestore.NewClient(context.Background(), "test-project")
+	if err != nil {
+		log.Fatalf("Unable to initialize firebase client. Error: %v", err)
+	}
 
-	fmt.Println(claims.Dat)
+	m := user.NewFirestoreManager(client, "TestUserCollection")
 
-	// Output: 123
-}
-
-func ExampleClaims_WithExpiry() {
-	now := time.Unix(0, 0).Add(1 * time.Hour)
-	claims := jwt.NewClaims().WithExpiry(now)
-	fmt.Printf("%d", claims.ExpiresAt)
-
-	// Output: 3600
+	managers["FirestoreManager"] = m
 }

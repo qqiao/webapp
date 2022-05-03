@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	j "github.com/golang-jwt/jwt/v4"
-	"github.com/qqiao/webapp/jwt"
+	"github.com/qqiao/webapp/v2/jwt"
 )
 
 func init() {

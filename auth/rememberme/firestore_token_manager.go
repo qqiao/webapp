@@ -19,22 +19,22 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/qqiao/webapp/datastore"
-	f "github.com/qqiao/webapp/datastore/firestore"
+	"github.com/qqiao/webapp/v2/datastore"
+	f "github.com/qqiao/webapp/v2/datastore/firestore"
 	"google.golang.org/api/iterator"
 )
 
-// FirebaseTokenManager manages datastore operations regarding rememberme tokens.
-type FirebaseTokenManager struct {
+// FirestoreTokenManager manages datastore operations regarding rememberme tokens.
+type FirestoreTokenManager struct {
 	client         *firestore.Client
 	collectionName string
 }
 
-// NewFirebaseTokenManager creates a token manager with the given firestore
+// NewFirestoreTokenManager creates a token manager with the given firestore
 // client and collection name to store the rememberme tokens in.
-func NewFirebaseTokenManager(client *firestore.Client,
-	collectionName string) FirebaseTokenManager {
-	return FirebaseTokenManager{
+func NewFirestoreTokenManager(client *firestore.Client,
+	collectionName string) *FirestoreTokenManager {
+	return &FirestoreTokenManager{
 		client:         client,
 		collectionName: collectionName,
 	}
@@ -44,7 +44,7 @@ func NewFirebaseTokenManager(client *firestore.Client,
 //
 // This function will return ErrTokenDuplicate if the given Username
 // Identifier combination already exists in the datastore
-func (m FirebaseTokenManager) Add(ctx context.Context,
+func (m *FirestoreTokenManager) Add(ctx context.Context,
 	token Token) (<-chan *Token, <-chan error) {
 	tokenCh := make(chan *Token)
 	errCh := make(chan error)
@@ -103,7 +103,7 @@ func (m FirebaseTokenManager) Add(ctx context.Context,
 // Delete deletes the token permanently from the underlying datastore.
 //
 // Once deleted, a token cannot be recovered
-func (m FirebaseTokenManager) Delete(ctx context.Context,
+func (m *FirestoreTokenManager) Delete(ctx context.Context,
 	token Token) <-chan error {
 	errCh := make(chan error)
 
@@ -158,7 +158,7 @@ func (m FirebaseTokenManager) Delete(ctx context.Context,
 //
 // This function DELETES all matching tokens, regardless of whether the token
 // has been revoked.
-func (m FirebaseTokenManager) Purge(ctx context.Context, username string,
+func (m *FirestoreTokenManager) Purge(ctx context.Context, username string,
 	cutoff time.Time) <-chan error {
 	errCh := make(chan error)
 
@@ -213,7 +213,7 @@ func (m FirebaseTokenManager) Purge(ctx context.Context, username string,
 // Although both revoking a token and removing a token will make the
 // ValidateToken call fail, RevokeToken leaves the token stored in the data
 // store.
-func (m FirebaseTokenManager) Revoke(ctx context.Context,
+func (m *FirestoreTokenManager) Revoke(ctx context.Context,
 	token Token) (<-chan *Token, <-chan error) {
 	tokenCh := make(chan *Token)
 	errCh := make(chan error)
@@ -283,7 +283,7 @@ func (m FirebaseTokenManager) Revoke(ctx context.Context,
 //
 // If the token is valid, its LastUsed will be updated to the current time to
 // record the fact that the token has recently been used.
-func (m FirebaseTokenManager) Validate(ctx context.Context,
+func (m *FirestoreTokenManager) Validate(ctx context.Context,
 	token Token) (<-chan *Token, <-chan error) {
 	tokenCh := make(chan *Token)
 	errCh := make(chan error)

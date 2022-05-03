@@ -23,10 +23,10 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/google/uuid"
-	"github.com/qqiao/webapp/auth/rememberme"
+	"github.com/qqiao/webapp/v2/auth/rememberme"
 )
 
-var tm rememberme.FirebaseTokenManager
+var tm *rememberme.FirestoreTokenManager
 
 func setUp() {
 	client, err := firestore.NewClient(context.Background(), "test-project")
@@ -34,7 +34,7 @@ func setUp() {
 		log.Fatalf("Unable to initialize firebase client. Error: %v", err)
 	}
 
-	tm = rememberme.NewFirebaseTokenManager(client, "TestTokenCollection")
+	tm = rememberme.NewFirestoreTokenManager(client, "TestTokenCollection")
 }
 
 func TestMain(m *testing.M) {
@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestFirebaseTokenManager_Add(t *testing.T) {
+func TestFirestoreTokenManager_Add(t *testing.T) {
 	identifier := uuid.NewString()
 
 	token := rememberme.Token{
@@ -83,7 +83,7 @@ func TestFirebaseTokenManager_Add(t *testing.T) {
 		})
 }
 
-func TestFirebaseTokenManager_Delete(t *testing.T) {
+func TestFirestoreTokenManager_Delete(t *testing.T) {
 	identifier := uuid.NewString()
 	token := rememberme.Token{
 		Username:   "test_user",
@@ -133,7 +133,7 @@ func TestFirebaseTokenManager_Delete(t *testing.T) {
 	})
 }
 
-func TestFirebaseTokenManager_Purge(t *testing.T) {
+func TestFirestoreTokenManager_Purge(t *testing.T) {
 	oldIdentifier1 := uuid.NewString()
 	oldToken1 := rememberme.Token{
 		Username:   "test_user",
@@ -226,7 +226,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	}
 
 	// after purging non-existent tokens,
-	// the ones that do fail should still faile,
+	// the ones that do fail should still fail,
 	// and ones that do work should still work'
 
 	// oldToken should now have been purged and validation should fail
@@ -250,7 +250,7 @@ func TestFirebaseTokenManager_Purge(t *testing.T) {
 	}
 }
 
-func TestFirebaseTokenManager_Revoke(t *testing.T) {
+func TestFirestoreTokenManager_Revoke(t *testing.T) {
 	identifier := uuid.NewString()
 
 	newToken := rememberme.Token{
@@ -299,7 +299,7 @@ func TestFirebaseTokenManager_Revoke(t *testing.T) {
 	}
 }
 
-func TestFirebaseTokenManager_Validate(t *testing.T) {
+func TestFirestoreTokenManager_Validate(t *testing.T) {
 	identifier := uuid.NewString()
 
 	token := rememberme.Token{
@@ -347,7 +347,7 @@ func TestFirebaseTokenManager_Validate(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	// Validation should suceed, and last used should get updated
+	// Validation should succeed, and last used should get updated
 	tokenCh, errCh = tm.Validate(context.Background(), rememberme.Token{
 		Username:   "test_user",
 		Identifier: identifier,

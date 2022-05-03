@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/qqiao/webapp/datastore"
+	"github.com/qqiao/webapp/v2/datastore"
 )
 
 // Errors.
@@ -34,17 +34,22 @@ var (
 type Manager interface {
 	// Add adds a user to the database of users.
 	//
-	// Add will return ErrUserDuplicate if the user already exists  in the
-	// datastore.
-	Add(ctx context.Context, user User) (<-chan *User, <-chan error)
+	// Please note that a user is considered a duplicate if any of the following
+	// already exist on a different user: Email, PhoneNumber and Username.The Add
+	// method will return ErrUserDuplicate in this case.
+	Add(ctx context.Context, user *User) (<-chan *User, <-chan error)
 
-	// Find finds the user based on the given query criteron
-	Find(ctx context.Context,
-		query datastore.Query) (<-chan (<-chan *User), <-chan error)
+	// Find finds the user based on the given query criterion.
+	//
+	// If multiple queries are sent, the queries are combined with OR
+	// condition. Please refer to https://pkg.go.dev/github.com/qqiao/webapp/v2/firebase/firestore#Or
+	// for limitations of OR queries.
+	Find(ctx context.Context, queries ...datastore.Query) (<-chan *User,
+		<-chan error)
 
 	// Update updates the given user record.
 	//
 	// Update will return ErrUserNotFound if the user cannot be found in the
 	// underlying datastore
-	Update(ctx context.Context, user User) (<-chan *User, <-chan error)
+	Update(ctx context.Context, user *User) (<-chan *User, <-chan error)
 }
