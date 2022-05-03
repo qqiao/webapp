@@ -1,0 +1,6 @@
+image:
+  file: .gitpod.Dockerfile
+
+tasks:
+  - init: go get && go build ./... && go test ./...
+    command: firebase emulators:exec --only firestore "go test -cover -v ./..."
