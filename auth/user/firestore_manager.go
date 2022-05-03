@@ -24,15 +24,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const defaultBatchSize = 10
-
-// FirestoreManager is responsible for all user related operations
+// FirestoreManager is an UserManager implementation that uses firebase
+// firestore as the underlying user information storage engine.
 type FirestoreManager struct {
 	client         *firestore.Client
 	collectionName string
 }
 
-// NewFirestoreManager creates a new UserManager with the given firestore
+// NewFirestoreManager creates a new FirestoreManager with the given firestore
 // client and collection name.
 func NewFirestoreManager(client *firestore.Client,
 	collectionName string) *FirestoreManager {
@@ -42,16 +41,10 @@ func NewFirestoreManager(client *firestore.Client,
 	}
 }
 
-// func (m *FirestoreManager) find(ctx context.Context,
-// 	t *firestore.Transaction, queries ...datastore.Query) {
-// 	col := m.client.Collection(m.collectionName)
-// 	usrs, errs := f.Or[*User](ctx, 5, 10, t, col, queries...)
-// }
-
 // Add adds a user to the database of users.
 //
 // Please note that a user is considered a duplicate if any of the following
-// already exist on a different user: Email, PhoneNumber and Username.The Add
+// already exist on a different user: Email, PhoneNumber, and Username. The Add
 // method will return ErrUserDuplicate in this case.
 func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
 	<-chan error) {
@@ -130,7 +123,7 @@ func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
 // Find finds the user based on the given query criterion.
 //
 // If multiple queries are sent, the queries are combined with OR
-// condition. Please refer to https://pkg.go.dev/github.com/qqiao/webapp/v2/firebase/firestore#Or
+// condition. Please refer to https://pkg.go.dev/github.com/qqiao/webapp/v2/datastore/firestore#Or
 // for limitations of OR queries.
 func (m *FirestoreManager) Find(ctx context.Context,
 	queries ...datastore.Query) (<-chan *User, <-chan error) {

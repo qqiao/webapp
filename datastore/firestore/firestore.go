@@ -52,23 +52,22 @@ func ApplyQuery(col *firestore.CollectionRef,
 	return q
 }
 
-// Or takes a set of datastore queries, and run them in the same transaction,
-// with OR condition connecting the queries.
+// Or takes a set of datastore queries, and run them in parallel under the same
+// transaction, and then collating all the results. Effectively simulating
+// an OR query.
 //
-// Due to the fact that firestore does not support OR query, we have to
-// simulate an OR query with multiple simultaneous queries in parallel.
+// Due to the fact that this is a simulated OR query, users of the function
+// should be aware of the following limitations:
+//   1. Ordering will not work. Since different queries are run separately
+//      in parallel and their results are streamed into the output channel,
+//      the ordering of the results could be arbitrary. If ordering is
+//      required, users will need to read all the results and then perform any
+//      sorting required on the completed result set.
+//   2. Limit query will not work. Due to the same reason why ordering does not
+//      work.
 //
-// There a few limitations users should be aware of with the current
-// implementation:
-//     1. Ordering will not function. Since queries are run in parallel,
-//     to prevent any potential data race conditions, the results of the
-//     queries are simply streamed, with no consideration of ordering.
-//     2. Limit on the overall result set will not function. Given that queries
-//     are run in parallel and ordering will not function, there is currently
-//     no way for the function ot support limiting the results.
-//
-// As a workaround, users should take the total results, apply any sorting,
-// further filtering and limiting of the results in their own code.
+// As a workaround, users should read all the results, apply any sorting,
+// further filtering, and limiting of the results in their own code.
 func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 	t *firestore.Transaction, col *firestore.CollectionRef,
 	queries ...datastore.Query) (<-chan O, <-chan error) {

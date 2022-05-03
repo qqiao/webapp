@@ -12,5 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package user implements a basic user management system.
+/*
+
+Package user implements a user management system.
+
+*/
 package user

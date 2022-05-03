@@ -19,7 +19,8 @@ import (
 	"time"
 )
 
-// TokenManager manages all rememberme token related operations.
+// TokenManager manages all rememberme token related operations. This interface
+// defines common operations on rememberme tokens.
 //
 // Depending on how the tokens are stored and queried, there could be
 // multiple different implementations of a TokenManager.
