@@ -1,3 +1,17 @@
+// Copyright 2022 Qian Qiao
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package user_test
 
 import (
@@ -71,20 +85,23 @@ func testAdd(m user.Manager) func(*testing.T) {
 					},
 				},
 			})
-			select {
-			case err := <-errCh:
-				if err != nil {
-					t.Errorf("Error when finding user: %v", err)
+			count := 0
+			for done := false; !done; {
+				select {
+				case err := <-errCh:
+					if err != nil {
+						t.Errorf("Error when finding user: %v", err)
+					}
+				case _, ok := <-foundCh:
+					if !ok {
+						done = true
+					} else {
+						count++
+					}
 				}
-			case u := <-foundCh:
-				count := 0
-
-				for range u {
-					count++
-				}
-				if count > 1 {
-					t.Errorf("Should have only found 1 user, got: %d", count)
-				}
+			}
+			if count > 1 {
+				t.Errorf("Should have only found 1 user, got: %d", count)
 			}
 		})
 	}
@@ -118,20 +135,23 @@ func testFind(m user.Manager) func(*testing.T) {
 					},
 				},
 			})
-			select {
-			case err := <-errCh:
-				if err != nil {
-					t.Errorf("Error when finding user: %v", err)
+			count := 0
+			for done := false; !done; {
+				select {
+				case err := <-errCh:
+					if err != nil {
+						t.Errorf("Error when finding user: %v", err)
+					}
+				case _, ok := <-foundCh:
+					if !ok {
+						done = true
+					} else {
+						count++
+					}
 				}
-			case u := <-foundCh:
-				count := 0
-
-				for range u {
-					count++
-				}
-				if count > 1 {
-					t.Errorf("Should have only found 1 user, got: %d", count)
-				}
+			}
+			if count > 1 {
+				t.Errorf("Should have only found 1 user, got: %d", count)
 			}
 		})
 
@@ -145,20 +165,25 @@ func testFind(m user.Manager) func(*testing.T) {
 					},
 				},
 			})
-			select {
-			case err := <-errCh:
-				if err != nil {
-					t.Errorf("Error when finding user: %v", err)
-				}
-			case u := <-foundCh:
-				count := 0
 
-				for range u {
-					count++
+			count := 0
+			for done := false; !done; {
+				select {
+				case err := <-errCh:
+					if err != nil {
+						t.Errorf("Error when finding user: %v", err)
+					}
+				case _, ok := <-foundCh:
+					if !ok {
+						done = true
+					} else {
+						count++
+					}
+
 				}
-				if count > 1 {
-					t.Errorf("Should have only found 1 user, got: %d", count)
-				}
+			}
+			if count > 1 {
+				t.Errorf("Should have only found 1 user, got: %d", count)
 			}
 		})
 
@@ -172,20 +197,24 @@ func testFind(m user.Manager) func(*testing.T) {
 					},
 				},
 			})
-			select {
-			case err := <-errCh:
-				if err != nil {
-					t.Errorf("Error when finding user: %v", err)
-				}
-			case u := <-foundCh:
-				count := 0
 
-				for range u {
-					count++
+			count := 0
+			for done := false; !done; {
+				select {
+				case err := <-errCh:
+					if err != nil {
+						t.Errorf("Error when finding user: %v", err)
+					}
+				case _, ok := <-foundCh:
+					if !ok {
+						done = true
+					} else {
+						count++
+					}
 				}
-				if count > 0 {
-					t.Errorf("Should have found 0 users, got: %d", count)
-				}
+			}
+			if count > 0 {
+				t.Errorf("Should have found 0 users, got: %d", count)
 			}
 		})
 	}
@@ -224,27 +253,33 @@ func testUpdate(m user.Manager) func(*testing.T) {
 				},
 			},
 		})
-		select {
-		case err := <-errCh:
-			if err != nil {
-				t.Errorf("Error when finding user: %v", err)
-			}
-		case u := <-foundCh:
-			count := 0
-			var lastFound *user.User
-			for foundUser := range u {
-				count++
-				lastFound = foundUser
-			}
-			if count > 1 {
-				t.Errorf("Should have only found 1 user, got: %d", count)
-			}
 
-			if lastFound.Username != usr.Username ||
-				lastFound.Password != usr.Password ||
-				lastFound.Suspended != usr.Suspended {
-				t.Errorf("Updated failed.\nExpected: %v\nGot: %v", usr, *lastFound)
+		count := 0
+		var lastFound *user.User
+		for done := false; !done; {
+			select {
+			case err := <-errCh:
+				if err != nil {
+					t.Errorf("Error when finding user: %v", err)
+				}
+			case u, ok := <-foundCh:
+				if !ok {
+					done = true
+				} else {
+					count++
+					lastFound = u
+				}
+
 			}
+		}
+		if count > 1 {
+			t.Errorf("Should have only found 1 user, got: %d", count)
+		}
+
+		if lastFound.Username != usr.Username ||
+			lastFound.Password != usr.Password ||
+			lastFound.Suspended != usr.Suspended {
+			t.Errorf("Updated failed.\nExpected: %v\nGot: %v", usr, *lastFound)
 		}
 	}
 }

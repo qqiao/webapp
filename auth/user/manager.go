@@ -39,9 +39,13 @@ type Manager interface {
 	// method will return ErrUserDuplicate in this case.
 	Add(ctx context.Context, user *User) (<-chan *User, <-chan error)
 
-	// Find finds the user based on the given query criterion
-	Find(ctx context.Context,
-		query datastore.Query) (<-chan (<-chan *User), <-chan error)
+	// Find finds the user based on the given query criterion.
+	//
+	// If multiple queries are sent, the queries are combined with OR
+	// condition. Please refer to https://pkg.go.dev/github.com/qqiao/webapp/v2/firebase/firestore#Or
+	// for limitations of OR queries.
+	Find(ctx context.Context, queries ...datastore.Query) (<-chan *User,
+		<-chan error)
 
 	// Update updates the given user record.
 	//

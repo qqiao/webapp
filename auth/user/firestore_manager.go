@@ -20,7 +20,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/qqiao/webapp/v2/datastore"
 	f "github.com/qqiao/webapp/v2/datastore/firestore"
-	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -66,6 +65,7 @@ func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
 			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
 			col := m.client.Collection(m.collectionName)
 
 			queries := make([]datastore.Query, 0)
@@ -98,14 +98,14 @@ func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
 			}
 
 			found, errs := f.Or[*User](ctx, 5, 5, t, col, queries...)
-			for cont := true; cont; {
+			for done := false; !done; {
 				select {
 				case u, ok := <-found:
 					if ok && u != nil {
 						cancel()
 						return ErrUserDuplicate
 					}
-					cont = false
+					done = true
 				case er, ok := <-errs:
 					if ok && er != nil {
 						cancel()
@@ -128,53 +128,48 @@ func (m *FirestoreManager) Add(ctx context.Context, usr *User) (<-chan *User,
 }
 
 // Find finds the user based on the given query criterion.
+//
+// If multiple queries are sent, the queries are combined with OR
+// condition. Please refer to https://pkg.go.dev/github.com/qqiao/webapp/v2/firebase/firestore#Or
+// for limitations of OR queries.
 func (m *FirestoreManager) Find(ctx context.Context,
-	query datastore.Query) (<-chan (<-chan *User), <-chan error) {
-
-	resultsCh := make(chan (<-chan *User))
-	errCh := make(chan error)
+	queries ...datastore.Query) (<-chan *User, <-chan error) {
+	out := make(chan *User)
+	errs := make(chan error)
 
 	go func() {
-		defer close(resultsCh)
-		defer close(errCh)
+		defer close(out)
+		defer close(errs)
 
-		// We check the batch size here so that we can use a buffered channel for
-		// better performance
-		batchSize := defaultBatchSize
-		if query.Limit != 0 {
-			batchSize = query.Limit
-		}
-		usersCh := make(chan *User, batchSize)
-		defer close(usersCh)
+		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
+			t *firestore.Transaction) error {
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+			col := m.client.Collection(m.collectionName)
 
-		q := f.ApplyQuery(m.client.Collection(m.collectionName), query)
-
-		iter := q.Documents(ctx)
-		defer iter.Stop()
-
-		for {
-			ref, err := iter.Next()
-			if err == iterator.Done {
-				resultsCh <- usersCh
-				return
+			found, errCh := f.Or[*User](ctx, 5, 5, t, col, queries...)
+			for done := false; !done; {
+				select {
+				case u, ok := <-found:
+					if ok && u != nil {
+						out <- u
+					} else {
+						done = true
+					}
+				case err, ok := <-errCh:
+					if ok && err != nil {
+						errs <- err
+					}
+				}
 			}
-
-			if err != nil {
-				errCh <- err
-				return
-			}
-
-			var user User
-			if err = ref.DataTo(&user); err != nil {
-				errCh <- err
-				return
-			}
-
-			usersCh <- &user
+			return nil
+		}); err != nil {
+			errs <- err
+			return
 		}
 	}()
 
-	return resultsCh, errCh
+	return out, errs
 }
 
 // Update updates the given user record.
@@ -182,7 +177,7 @@ func (m *FirestoreManager) Find(ctx context.Context,
 // Update will return ErrUserNotFound if the user cannot be found in the
 // underlying datastore
 func (m *FirestoreManager) Update(ctx context.Context,
-	user *User) (<-chan *User, <-chan error) {
+	usr *User) (<-chan *User, <-chan error) {
 	userCh := make(chan *User)
 	errCh := make(chan error)
 
@@ -192,7 +187,7 @@ func (m *FirestoreManager) Update(ctx context.Context,
 
 		if err := m.client.RunTransaction(ctx, func(ctx context.Context,
 			t *firestore.Transaction) error {
-			ref := m.client.Collection(m.collectionName).Doc(user.UID)
+			ref := m.client.Collection(m.collectionName).Doc(usr.UID)
 			_, err := t.Get(ref)
 			if err != nil {
 				if status.Code(err) == codes.NotFound {
@@ -201,12 +196,12 @@ func (m *FirestoreManager) Update(ctx context.Context,
 				return err
 			}
 
-			return t.Set(ref, user)
+			return t.Set(ref, usr)
 		}); err != nil {
 			errCh <- err
 			return
 		}
-		userCh <- user
+		userCh <- usr
 	}()
 
 	return userCh, errCh
