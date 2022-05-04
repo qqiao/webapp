@@ -56,6 +56,17 @@ func ApplyQuery(col *firestore.CollectionRef,
 // transaction, and then collating all the results. Effectively simulating
 // an OR query.
 //
+// Params parallelQueries and bufferSize helps control the overall performance.
+// parallelQueries controls how many queries would run in parallel. If this is
+// fewer than the number of queries, queries would queue up and some queries
+// would execute after previous ones have finished. bufferSize controls the
+// size of the result buffer for each query. If this value is too small, 
+// queries will also have to wait until results have been read from the buffer.
+//
+// Applications should carefully tune these two params, as values too small
+// would cause contention, and values too large could cause excessive resource
+// consumption.
+//
 // Due to the fact that this is a simulated OR query, users of the function
 // should be aware of the following limitations:
 //   1. Ordering will not work. Since different queries are run separately
