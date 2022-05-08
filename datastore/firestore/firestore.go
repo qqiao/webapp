@@ -52,16 +52,17 @@ func ApplyQuery(col *firestore.CollectionRef,
 	return q
 }
 
-// Or takes a set of datastore queries, and run them in parallel under the same
-// transaction, and then collating all the results. Effectively simulating
+// Or takes a set of datastore queries, and runs them concurrently under the
+// same transaction, and then collates all the results. Effectively simulating
 // an OR query.
 //
-// Params parallelQueries and bufferSize helps control the overall performance.
-// parallelQueries controls how many queries would run in parallel. If this is
-// fewer than the number of queries, queries would queue up and some queries
-// would execute after previous ones have finished. bufferSize controls the
-// size of the result buffer for each query. If this value is too small, 
-// queries will also have to wait until results have been read from the buffer.
+// Params concurrentQueries and bufferSize helps control the overall
+// performance. concurrentQueries controls how many queries would run
+// concurrently. If this is fewer than the total number of queries, queries
+// would queue up and some queries would execute after previous ones finish.
+// bufferSize controls the size of the result buffer for each query. If this
+// value is too small, queries will also have to wait until results have been
+// read from the buffer.
 //
 // Applications should carefully tune these two params, as values too small
 // would cause contention, and values too large could cause excessive resource
@@ -70,7 +71,7 @@ func ApplyQuery(col *firestore.CollectionRef,
 // Due to the fact that this is a simulated OR query, users of the function
 // should be aware of the following limitations:
 //   1. Ordering will not work. Since different queries are run separately
-//      in parallel and their results are streamed into the output channel,
+//      concurrently and their results are streamed into the output channel,
 //      the ordering of the results could be arbitrary. If ordering is
 //      required, users will need to read all the results and then perform any
 //      sorting required on the completed result set.
@@ -79,7 +80,7 @@ func ApplyQuery(col *firestore.CollectionRef,
 //
 // As a workaround, users should read all the results, apply any sorting,
 // further filtering, and limiting of the results in their own code.
-func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
+func Or[O any](ctx context.Context, concurrentQueries int, bufferSize int,
 	t *firestore.Transaction, col *firestore.CollectionRef,
 	queries ...datastore.Query) (<-chan O, <-chan error) {
 	out := make(chan O)
@@ -153,7 +154,7 @@ func Or[O any](ctx context.Context, parallelQueries int, bufferSize int,
 			return out, err
 		}
 
-		stage, e := pipeline.NewStageStreamWorker(parallelQueries,
+		stage, e := pipeline.NewStageStreamWorker(concurrentQueries,
 			bufferSize, in, sw)
 		if e != nil {
 			err <- e
