@@ -25,12 +25,12 @@ const (
 
 // Query represents the abstraction of any datastore query.
 //
-// For a query with multiple Filters,they are treated as a set of criterion
+// For a query with multiple Filters, they are treated as a set of criterion
 // joined with AND condition behind the scenes.
 //
 // For queries needing to use the OR condition, it is more efficient to split
-// the query into multiple separate ones, run them separately in parallel and
-// combine the results afterwards.
+// the query into multiple separate ones, run them separately in concurrently
+// and combine the results afterwards.
 type Query struct {
 	Limit   int      `json:"limit"`
 	Orders  []Order  `json:"orders"`
