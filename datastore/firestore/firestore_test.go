@@ -97,7 +97,6 @@ func TestOr(t *testing.T) {
 				}
 			}
 		}
-		return nil
 	}); err != nil {
 		t.Errorf("Error testing Or: %v", err)
 	}
