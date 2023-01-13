@@ -7,7 +7,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/google/uuid v1.3.0
 	github.com/qqiao/pipeline/v2 v2.1.2
-	google.golang.org/api v0.106.0
+	google.golang.org/api v0.107.0
 	google.golang.org/grpc v1.51.0
 )
 
