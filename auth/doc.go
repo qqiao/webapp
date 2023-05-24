@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package auth contains all functions regarding user authentication.
+// Package auth contains all functions related to user authentication.
 package auth
