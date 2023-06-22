@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/qqiao/pipeline/v2 v2.1.2
 	google.golang.org/api v0.124.0
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.56.1
 )
 
 require (
