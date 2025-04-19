@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // PS512Manager is responsible for creating and validating JWT tokens using
@@ -100,7 +100,7 @@ func (m *PS512Manager) ParseCustom(token string) (<-chan *Claims,
 		} else {
 			cl := claims.(*Claims)
 
-			if time.Unix(cl.ExpiresAt, 0).Before(time.Now()) {
+			if time.Unix(cl.ExpiresAt.Unix(), 0).Before(time.Now()) {
 				errCh <- errors.New("token expired")
 				return
 			}

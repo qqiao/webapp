@@ -17,7 +17,7 @@ package jwt
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Claims represents a custom claim where the dat section is used for custom
@@ -26,7 +26,7 @@ import (
 // TODO: make this generic in 2.0
 type Claims struct {
 	Dat interface{} `json:"dat,omitempty"`
-	*jwt.StandardClaims
+	*jwt.RegisteredClaims
 }
 
 // NewClaims creates a new instance of the custom JWT claims.
@@ -34,7 +34,7 @@ type Claims struct {
 // TODO: make this generic in 2.0
 func NewClaims() *Claims {
 	return &Claims{
-		StandardClaims: &jwt.StandardClaims{},
+		RegisteredClaims: &jwt.RegisteredClaims{},
 	}
 }
 
@@ -48,6 +48,6 @@ func (c *Claims) WithDat(dat interface{}) *Claims {
 
 // WithExpiry updates the expiry of the JWT token to the time specified.
 func (c *Claims) WithExpiry(expiry time.Time) *Claims {
-	c.StandardClaims.ExpiresAt = expiry.Unix()
+	c.RegisteredClaims.ExpiresAt = jwt.NewNumericDate(expiry)
 	return c
 }
