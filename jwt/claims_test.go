@@ -32,7 +32,7 @@ func ExampleClaims_WithDat() {
 func ExampleClaims_WithExpiry() {
 	now := time.Unix(0, 0).Add(1 * time.Hour)
 	claims := jwt.NewClaims().WithExpiry(now)
-	fmt.Printf("%d", claims.ExpiresAt)
+	fmt.Printf("%d", claims.ExpiresAt.Unix())
 
 	// Output: 3600
 }
