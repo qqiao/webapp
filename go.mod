@@ -1,8 +1,6 @@
 module github.com/qqiao/webapp/v2
 
-go 1.23.0
-
-toolchain go1.24.2
+go 1.24
 
 require (
 	cloud.google.com/go/firestore v1.18.0
