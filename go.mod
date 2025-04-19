@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/firestore v1.10.0
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.3.0
 	github.com/qqiao/pipeline/v2 v2.1.2
 	google.golang.org/api v0.124.0
