@@ -18,7 +18,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 
-	j "github.com/golang-jwt/jwt/v4"
+	j "github.com/golang-jwt/jwt/v5"
 	"github.com/qqiao/webapp/v2/jwt"
 )
 
