@@ -3,7 +3,7 @@ module github.com/qqiao/webapp/v2
 go 1.24.0
 
 require (
-	cloud.google.com/go/firestore v1.19.0
+	cloud.google.com/go/firestore v1.20.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/qqiao/pipeline/v2 v2.1.2
