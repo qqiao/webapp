@@ -1,13 +1,13 @@
 module github.com/qqiao/webapp/v2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	cloud.google.com/go/firestore v1.21.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/qqiao/pipeline/v2 v2.1.2
-	google.golang.org/api v0.267.0
+	google.golang.org/api v0.268.0
 	google.golang.org/grpc v1.79.1
 )
 
